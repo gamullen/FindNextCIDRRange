@@ -85,7 +85,7 @@ namespace FindNextCIDR
 
                         if (null == vNet)
                         {
-                            errorMessage = "Virtual network " + virtualNetworkName + " not found.";
+                            errorMessage = "Virtual network " + virtualNetworkName + " not found in resource group " + resourceGroupName;
                         }
                         else
                         {
