@@ -21,24 +21,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-using System;
-using System.Threading.Tasks;
+using Azure.Identity;
+using Azure.ResourceManager;
+using Azure.ResourceManager.Network;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using System.Net.Http;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
-using Azure.Identity;
-using Azure.Security.KeyVault.Secrets;
-using Azure.ResourceManager;
-using Azure.ResourceManager.Resources;
-using Azure.ResourceManager.Network;
-using System.Net;
-using System.Collections.Generic;
+using System;
 using System.Collections;
+using System.Net;
+using System.Threading.Tasks;
 
 namespace FindNextCIDR
 {
@@ -83,7 +77,8 @@ namespace FindNextCIDR
                         foreach (VirtualNetwork vNet2 in vNets)
                         {
                             // Find the desired VNet
-                            if (virtualNetworkName.Equals(vNet2.Data.Name) && resourceGroupName.Equals(vNet2.Id.ResourceGroupName)) {   
+                            if (virtualNetworkName.Equals(vNet2.Data.Name) && resourceGroupName.Equals(vNet2.Id.ResourceGroupName))
+                            {
                                 vNet = vNet2;
                             }
                         }
@@ -146,18 +141,20 @@ namespace FindNextCIDR
                                         }
                                     }
                                 }
-                            } 
+                            }
 
                             if (!success)
                             {
                                 errorMessage = "VNet " + resourceGroupName + "/" + virtualNetworkName + " cannot accept a subnet of size " + cidr;
                             }
                         }
-                    } else
+                    }
+                    else
                     {
                         errorMessage = "Invalid CIDR: " + cidrString;
                     }
-                } else
+                }
+                else
                 {
                     errorMessage = "Invalid input: " + errorMessage;
                 }
@@ -218,7 +215,8 @@ namespace FindNextCIDR
             {
                 byte cidr = Byte.Parse(inCIDR);
                 isGood = (2 <= cidr && 29 >= cidr);
-            } catch
+            }
+            catch
             {
 
             }
