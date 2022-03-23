@@ -37,7 +37,7 @@ using System.Threading.Tasks;
 
 namespace FindNextCIDR
 {
-public static class Function1
+    public static class Function1
     {
         public class ProposedSubnetResponse
         {
@@ -51,6 +51,13 @@ public static class Function1
             public string Location { get; set; }
             public string ProposedAddressPrefix { get; set; }
         }
+        public class CustomError
+        {
+            public string Code { get; set; }
+            public string Message { get; set; }
+        }
+
+        static HttpStatusCode httpStatusCode = HttpStatusCode.OK;
 
         [FunctionName("Function1")]
         public static async Task<IActionResult> Run(
@@ -115,7 +122,10 @@ public static class Function1
                             foreach (string ip in vNet.Data.AddressSpace.AddressPrefixes)
                             {
                                 IPNetwork vNetCIDR = IPNetwork.Parse(ip);
-                                vNetCIDRs.Add(vNetCIDR.GetHashCode(), vNetCIDR);
+                                if (cidr >= vNetCIDR.Cidr)
+                                {
+                                    vNetCIDRs.Add(vNetCIDR.GetHashCode(), vNetCIDR);
+                                }
                             }
 
                             //Go though every address space in the specified VNet
@@ -159,6 +169,7 @@ public static class Function1
                                         {
                                             success = false;
                                             foundBadSubnetInCandidateCIDR = false;
+                                            httpStatusCode = HttpStatusCode.NotFound;
                                         }
                                     }
                                 }
@@ -166,22 +177,26 @@ public static class Function1
 
                             if (!success)
                             {
+                                httpStatusCode = HttpStatusCode.NotFound;
                                 errorMessage = "VNet " + resourceGroupName + "/" + virtualNetworkName + " cannot accept a subnet of size " + cidr;
                             }
                         }
                     }
                     else
                     {
+                        httpStatusCode = HttpStatusCode.BadRequest;
                         errorMessage = "Invalid CIDR: " + cidrString;
                     }
                 }
                 else
                 {
+                    httpStatusCode = HttpStatusCode.BadRequest;
                     errorMessage = "Invalid input: " + errorMessage;
                 }
             }
             catch (Exception e)
             {
+                httpStatusCode = HttpStatusCode.InternalServerError;
                 error = e;
                 // empty code var will signal error
             }
@@ -204,7 +219,16 @@ public static class Function1
                     errorMessage = error.Message;
                 }
 
-                result = new BadRequestObjectResult(errorMessage);
+                var customError = new CustomError
+                {
+                    Code = httpStatusCode.ToString(),
+                    Message = errorMessage
+                };
+
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string jsonString = JsonSerializer.Serialize(customError, options);
+
+                result = new BadRequestObjectResult(jsonString);
             }
 
             return result;
