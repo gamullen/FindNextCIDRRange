@@ -31,6 +31,7 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -219,10 +220,9 @@ namespace FindNextCIDR
                     errorMessage = error.Message;
                 }
 
-                var customError = new CustomError
-                {
-                    Code = httpStatusCode.ToString(),
-                    Message = errorMessage
+                var customError = new CustomError {
+                    Code = "" + ((int)httpStatusCode),
+                    Message = httpStatusCode.ToString() + ", " +  errorMessage
                 };
 
                 var options = new JsonSerializerOptions { WriteIndented = true };
