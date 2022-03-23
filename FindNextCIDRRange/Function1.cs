@@ -32,18 +32,34 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections;
 using System.Net;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace FindNextCIDR
 {
-    public static class Function1
+public static class Function1
     {
+        public class ProposedSubnetResponse
+        {
+            public ProposedSubnetResponse()
+            {
+            }
+
+            public string Name { get; set; }
+            public string Id { get; set; }
+            public string Type { get; set; }
+            public string Location { get; set; }
+            public string ProposedAddressPrefix { get; set; }
+        }
+
         [FunctionName("Function1")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
+
+            ProposedSubnetResponse proposedSubnetResponse = new ProposedSubnetResponse();
 
             string subscriptionId = req.Query["subscriptionId"];
             string virtualNetworkName = req.Query["virtualNetworkName"];
@@ -89,6 +105,11 @@ namespace FindNextCIDR
                         }
                         else
                         {
+                            proposedSubnetResponse.Name = virtualNetworkName;
+                            proposedSubnetResponse.Id = vNet.Id;
+                            proposedSubnetResponse.Type = vNet.Id.ResourceType;
+                            proposedSubnetResponse.Location = vNet.Data.Location;
+
                             Hashtable vNetCIDRs = new Hashtable();
 
                             foreach (string ip in vNet.Data.AddressSpace.AddressPrefixes)
@@ -168,7 +189,13 @@ namespace FindNextCIDR
             ObjectResult result = null;
             if ((null == errorMessage) && success)
             {
-                result = new OkObjectResult("Available CIDR block for CIDR size " + cidr + " = " + foundSubnet);
+                proposedSubnetResponse.ProposedAddressPrefix = foundSubnet;
+
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string jsonString = JsonSerializer.Serialize(proposedSubnetResponse, options);
+
+                result = new OkObjectResult(jsonString);
+                // result = new OkObjectResult("Available CIDR block for CIDR size " + cidr + " = " + foundSubnet);
             }
             else
             {
