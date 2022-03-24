@@ -46,16 +46,16 @@ namespace FindNextCIDR
             {
             }
 
-            public string Name { get; set; }
-            public string Id { get; set; }
-            public string Type { get; set; }
-            public string Location { get; set; }
-            public string ProposedAddressPrefix { get; set; }
+            public string name { get; set; }
+            public string id { get; set; }
+            public string type { get; set; }
+            public string location { get; set; }
+            public string proposedCIDR { get; set; }
         }
         public class CustomError
         {
-            public string Code { get; set; }
-            public string Message { get; set; }
+            public string code { get; set; }
+            public string message { get; set; }
         }
 
         static HttpStatusCode httpStatusCode = HttpStatusCode.OK;
@@ -113,10 +113,10 @@ namespace FindNextCIDR
                         }
                         else
                         {
-                            proposedSubnetResponse.Name = virtualNetworkName;
-                            proposedSubnetResponse.Id = vNet.Id;
-                            proposedSubnetResponse.Type = vNet.Id.ResourceType;
-                            proposedSubnetResponse.Location = vNet.Data.Location;
+                            proposedSubnetResponse.name = virtualNetworkName;
+                            proposedSubnetResponse.id = vNet.Id;
+                            proposedSubnetResponse.type = vNet.Id.ResourceType;
+                            proposedSubnetResponse.location = vNet.Data.Location;
 
                             Hashtable vNetCIDRs = new Hashtable();
 
@@ -205,7 +205,7 @@ namespace FindNextCIDR
             ObjectResult result = null;
             if ((null == errorMessage) && success)
             {
-                proposedSubnetResponse.ProposedAddressPrefix = foundSubnet;
+                proposedSubnetResponse.proposedCIDR = foundSubnet;
 
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 string jsonString = JsonSerializer.Serialize(proposedSubnetResponse, options);
@@ -221,8 +221,8 @@ namespace FindNextCIDR
                 }
 
                 var customError = new CustomError {
-                    Code = "" + ((int)httpStatusCode),
-                    Message = httpStatusCode.ToString() + ", " +  errorMessage
+                    code = "" + ((int)httpStatusCode),
+                    message = httpStatusCode.ToString() + ", " +  errorMessage
                 };
 
                 var options = new JsonSerializerOptions { WriteIndented = true };
