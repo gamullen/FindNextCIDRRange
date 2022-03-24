@@ -186,7 +186,7 @@ namespace FindNextCIDR
                     else
                     {
                         httpStatusCode = HttpStatusCode.BadRequest;
-                        errorMessage = "Invalid CIDR: " + cidrString;
+                        errorMessage = "Invalid CIDR size requested: " + cidrString;
                     }
                 }
                 else
