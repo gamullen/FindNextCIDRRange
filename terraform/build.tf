@@ -142,4 +142,5 @@ resource "azurerm_storage_container" "web_blob_container" {
 resource "azurerm_role_assignment" "id_reader" {
   principal_id = data.azurerm_user_assigned_identity.mgmt_user_assigned_id.principal_id
   scope        = module.rg.rg_id
+  role_definition_name = "Reader"
 }
