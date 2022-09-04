@@ -15,8 +15,9 @@ This repo:
 - Build function app and needed resources using terraform
 - Deploy code via GitHub Actions
 
-The function itself is a HTTP function, which, will only run on request. Please note, the function app does require reader permissions over the virtual network.
+The function itself is an HTTP function, which, will only run on request. Please note, the function app does require reader permissions over the virtual network.
 
+**Worth a note, that this won't work out the box for you, you are expected to use your own intuition or reach out for help :smile: **
 There are 1 functions:
 - `Get-Cidir` 
 
