@@ -1,4 +1,4 @@
-name: 'Func Deploy
+name: 'Func Deploy'
 
 # Allow run manually
 on:
