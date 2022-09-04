@@ -26,9 +26,9 @@ module "network" {
   subnet_prefixes = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
   subnet_names    = ["sn1-${module.network.vnet_name}", "sn2-${module.network.vnet_name}", "sn3-${module.network.vnet_name}"] //sn1-vnet-ldo-euw-dev-01
   subnet_service_endpoints = {
-    "sn1-${module.network.vnet_name}" = ["Microsoft.Storage"] // Adds extra subnet endpoints to sn1-vnet-ldo-euw-dev-01
+    "sn1-${module.network.vnet_name}" = ["Microsoft.Storage"]                   // Adds extra subnet endpoints to sn1-vnet-ldo-euw-dev-01
     "sn2-${module.network.vnet_name}" = ["Microsoft.Storage", "Microsoft.Sql"], // Adds extra subnet endpoints to sn2-vnet-ldo-euw-dev-01
-    "sn3-${module.network.vnet_name}" = ["Microsoft.AzureActiveDirectory"] // Adds extra subnet endpoints to sn3-vnet-ldo-euw-dev-01
+    "sn3-${module.network.vnet_name}" = ["Microsoft.AzureActiveDirectory"]      // Adds extra subnet endpoints to sn3-vnet-ldo-euw-dev-01
   }
 }
 
@@ -125,9 +125,9 @@ module "fnc_app" {
     }
 
     auth_settings = {
-      enabled                        = false
-      runtime_version                = "~1"
-      unauthenticated_client_action  = "AllowAnonymous"
+      enabled                       = false
+      runtime_version               = "~1"
+      unauthenticated_client_action = "AllowAnonymous"
     }
   }
 }
@@ -139,13 +139,9 @@ resource "azurerm_storage_container" "web_blob_container" {
   container_access_type = "blob"
 }
 
-#Needed for app
+# Needed for app to have access to the vnet for reading
 resource "azurerm_role_assignment" "id_reader" {
-  principal_id = data.azurerm_user_assigned_identity.mgmt_user_assigned_id.principal_id
-  scope        = module.rg.rg_id
+  principal_id         = module.fnc_app.fnc_identity.0.principal_id
+  scope                = module.network.vnet_id
   role_definition_name = "Reader"
-}
-
-output "id" {
-  value = module.fnc_app.fnc_identity.0.principal_id
 }
