@@ -28,7 +28,7 @@ jobs:
           terraform-backend-storage-account-name: ${{ secrets.SpokeSaName }}
           terraform-backend-blob-container-name: ${{ secrets.SpokeSaBlobContainerName }}
           terraform-backend-storage-access-key: ${{ secrets.SpokeSaPrimaryKey }}
-          terraform-backend-state-name: "lbdo-dev-gh.terraform.tfstate"
+          terraform-backend-state-name: "lbdo-cidr-api.terraform.tfstate"
           terraform-provider-client-id: ${{ secrets.SpokeSvpClientId }}
           terraform-provider-client-secret: ${{ secrets.SpokeSvpClientSecret }}
           terraform-provider-subscription-id: ${{ secrets.SpokeSubId }}
