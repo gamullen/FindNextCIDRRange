@@ -38,7 +38,7 @@ using System.Threading.Tasks;
 
 namespace FindNextCIDR
 {
-    public static class Function1
+    public static class GetCidr
     {
         public class ProposedSubnetResponse
         {
@@ -60,7 +60,7 @@ namespace FindNextCIDR
 
         static HttpStatusCode httpStatusCode = HttpStatusCode.OK;
 
-        [FunctionName("Function1")]
+        [FunctionName("GetCidr")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
