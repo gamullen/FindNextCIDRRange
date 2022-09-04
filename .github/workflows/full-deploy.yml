@@ -65,5 +65,6 @@ jobs:
           code-client-id: ${{ secrets.SPOKESVPCLIENTID }}
           code-client-secret: ${{ secrets.SPOKESVPCLIENTSECRET }}
           code-tenant-id: ${{ secrets.SPOKETENANTID }}
-          code-app-name: "fnc-ldo-euw-dev-01 --csharp"
+          code-app-name: fnc-ldo-euw-dev-01
+          code_additional_params: --csharp --force
 
