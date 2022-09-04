@@ -12,6 +12,26 @@ data "http" "user_ip" {
   url = "https://ipv4.icanhazip.com" // If running locally, running this block will fetch your outbound public IP of your home/office/ISP/VPN and add it.  It will add the hosted agent etc if running from Microsoft/GitLab
 }
 
+module "network" {
+  source = "registry.terraform.io/libre-devops/network/azurerm"
+
+  rg_name  = module.rg.rg_name // rg-ldo-euw-dev-build
+  location = module.rg.rg_location
+  tags     = local.tags
+
+  vnet_name     = "vnet-${var.short}-${var.loc}-${terraform.workspace}-01" // vnet-ldo-euw-dev-01
+  vnet_location = module.network.vnet_location
+
+  address_space   = ["10.0.0.0/16"]
+  subnet_prefixes = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  subnet_names    = ["sn1-${module.network.vnet_name}", "sn2-${module.network.vnet_name}", "sn3-${module.network.vnet_name}"] //sn1-vnet-ldo-euw-dev-01
+  subnet_service_endpoints = {
+    "sn1-${module.network.vnet_name}" = ["Microsoft.Storage"] // Adds extra subnet endpoints to sn1-vnet-ldo-euw-dev-01
+    "sn2-${module.network.vnet_name}" = ["Microsoft.Storage", "Microsoft.Sql"], // Adds extra subnet endpoints to sn2-vnet-ldo-euw-dev-01
+    "sn3-${module.network.vnet_name}" = ["Microsoft.AzureActiveDirectory"] // Adds extra subnet endpoints to sn3-vnet-ldo-euw-dev-01
+  }
+}
+
 // This module does not consider for CMKs and allows the users to manually set bypasses
 #checkov:skip=CKV2_AZURE_1:CMKs are not considered in this module
 #checkov:skip=CKV2_AZURE_18:CMKs are not considered in this module
@@ -116,4 +136,10 @@ resource "azurerm_storage_container" "web_blob_container" {
   name                  = "$web"
   storage_account_name  = module.sa.sa_name
   container_access_type = "blob"
+}
+
+#Needed for app
+resource "azurerm_role_assignment" "id_reader" {
+  principal_id = data.azurerm_user_assigned_identity.mgmt_user_assigned_id.principal_id
+  scope        = module.rg.rg_id
 }

@@ -80,7 +80,7 @@ stages:
                   SHORTHAND_PROJECT_NAME: "ldo"
                   SHORTHAND_ENVIRONMENT_NAME: "dev"
                   SHORTHAND_LOCATION_NAME: "euw"
-                  TERRAFORM_PATH: "$(Build.SourcesDirectory)/get-azure-microsoft-ips-function-app/terraform"
+                  TERRAFORM_PATH: "$(Build.SourcesDirectory)/$(Build.Repository.Name)/terraform"
                   TERRAFORM_VERSION: "1.1.8"
                   TERRAFORM_DESTROY: ${{ parameters.TERRAFORM_DESTROY }}
                   TERRAFORM_PLAN_ONLY: ${{ parameters.TERRAFORM_PLAN_ONLY }}
