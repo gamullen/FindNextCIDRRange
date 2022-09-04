@@ -2,14 +2,12 @@ name: 'CIDR Function App CICD'
 
 # Allow run manually
 on:
-  #Build can only be ran manually or on PR to main
-  on:
-    push:
-      branches:
-        - main
-    pull_request:
-      types: [ closed ]
-    workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [ closed ]
+  workflow_dispatch:
 
 jobs:
   azure-terraform-job:
@@ -67,6 +65,5 @@ jobs:
           code-client-id: ${{ secrets.SPOKESVPCLIENTID }}
           code-client-secret: ${{ secrets.SPOKESVPCLIENTSECRET }}
           code-tenant-id: ${{ secrets.SPOKETENANTID }}
-          code-app-name: "fnc-ldo-euw-dev-01"
           code-app-cmd: "func azure functionapp publish fnc-ldo-euw-dev-01 --csharp"
 

@@ -17,7 +17,8 @@ This repo:
 
 The function itself is an HTTP function, which, will only run on request. Please note, the function app does require reader permissions over the virtual network.
 
-**Worth a note, that this won't work out the box for you, you are expected to use your own intuition or reach out for help :smile: **
+**Worth a note, that this won't work out the box for you, you are expected to use your own intuition or reach out for help :smile:**
+
 There are 1 functions:
 - `Get-Cidir` 
 
@@ -43,7 +44,7 @@ With example output:
 
 ## Building the environment
 
-At the time of writing, this project only supports Azure DevOps continuous integration and is setup to deploy using some expected items in the Libre DevOps Azure DevOps instance.
+At the time of writing, this project only supports Azure DevOps continuous integration and is set up to deploy using some expected items in the Libre DevOps Azure DevOps instance.
 
 You can freely use the modules used to deploy these resources as well as the pipeline templates, but setting up the bits in between will be up to you.
 
