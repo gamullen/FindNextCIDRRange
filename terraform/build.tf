@@ -147,13 +147,5 @@ resource "azurerm_role_assignment" "id_reader" {
 }
 
 output "id" {
-  value = module.fnc_app.fnc_identity
-}
-
-locals {
-  identity_test = { for key, value in module.fnc_app.fnc_identity : key => value }
-}
-
-output "identity_test" {
-  value = lookup(local.identity_test, "principal_id", "error")
+  value = module.fnc_app.fnc_identity.0.principal_id
 }
