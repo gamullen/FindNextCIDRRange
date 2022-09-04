@@ -1,0 +1,137 @@
+---
+name: $(Build.DefinitionName)-$(date:yyyyMMdd)$(rev:.r)
+
+trigger: none
+
+parameters:
+
+  - name: RUN_TERRAFORM
+    default: true
+    type: boolean
+    displayName: "Do you wish to run the terraform build?"
+  
+  - name: RUN_BUILD
+    default: true
+    type: boolean
+    displayName: "Do you wish to run the function deployment?"
+
+  - name: TERRAFORM_DESTROY
+    default: false
+    type: boolean
+    displayName: "Do you wish to run terraform destroy?"
+
+  - name: TERRAFORM_PLAN_ONLY
+    default: true
+    type: boolean
+    displayName: "Do you wish to run terraform plan ONLY?"
+
+
+# You may wish to use a separate or self-hosted agent per job, by default, all jobs will inherit stage agent
+pool:
+  name: Azure Pipelines
+  vmImage: ubuntu-latest
+
+# Declare variable group to pass variables to parameters, in this case, a libre-devops keyvault which is using a service principle for authentication
+variables:
+  - group: "svp-kv-ldo-euw-dev-mgt-01"
+
+# Sets what repos need cloned, for example, a library repo for modules and a poly-repo for target code
+resources:
+  repositories:
+
+  - repository: azure-naming-convention
+    type: github
+    endpoint: github_service_connection
+    name: libre-devops/azure-naming-convention
+    ref: main
+
+  - repository: terraform-azdo-pipeline-template
+    type: github
+    endpoint: github_service_connection
+    name: libre-devops/terraform-azdo-pipeline-template
+    ref: main
+
+  - repository: azdo-azure-function-package-and-deploy-pipeline-template
+    type: github
+    endpoint: github_service_connection
+    name: libre-devops/azdo-azure-function-package-and-deploy-pipeline-template
+    ref: main
+
+# Sets stage so that multiple stages can be used if needed, as it stands, only 1 stage is expected and is thus passed as a parameter
+stages:
+    - ${{ if eq(parameters.RUN_TERRAFORM, true) }}:
+
+      - stage: "dev"
+        displayName: "Terraform Dev Stage"
+        jobs:
+          - job: Terraform_Build
+            workspace:
+              clean: all
+            displayName: Terraform Build
+            steps:
+
+              # Declare the repos needed from the resources list
+              - checkout: self
+              - checkout: azure-naming-convention
+
+              # Remotely fetch pipeline template, in this case, I am using one in my development repo.
+              - template: /.azurepipelines/.templates/terraform-cicd-template.yml@terraform-azdo-pipeline-template
+                parameters:
+                  SHORTHAND_PROJECT_NAME: "ldo"
+                  SHORTHAND_ENVIRONMENT_NAME: "dev"
+                  SHORTHAND_LOCATION_NAME: "euw"
+                  TERRAFORM_PATH: "$(Build.SourcesDirectory)/get-azure-microsoft-ips-function-app/terraform"
+                  TERRAFORM_VERSION: "1.1.8"
+                  TERRAFORM_DESTROY: ${{ parameters.TERRAFORM_DESTROY }}
+                  TERRAFORM_PLAN_ONLY: ${{ parameters.TERRAFORM_PLAN_ONLY }}
+                  TERRAFORM_STORAGE_RG_NAME: $(SpokeSaRgName) # Key Vault variable
+                  TERRAFORM_STORAGE_ACCOUNT_NAME: $(SpokeSaName)
+                  TERRAFORM_BLOB_CONTAINER_NAME: $(SpokeSaBlobContainerName)
+                  TERRAFORM_STORAGE_KEY: $(SpokeSaPrimaryKey)
+                  TERRAFORM_STATE_NAME: "ldo-dev.terraform.tfstate"
+                  TERRAFORM_WORKSPACE_NAME: $(System.StageName)
+                  TERRAFORM_COMPLIANCE_PATH: "$(Build.SourcesDirectory)/azure-naming-convention/az-terraform-compliance-policy"
+                  AZURE_TARGET_CLIENT_ID: $(SpokeSvpClientId)
+                  AZURE_TARGET_CLIENT_SECRET: $(SpokeSvpClientSecret)
+                  AZURE_TARGET_TENANT_ID: $(SpokeTenantId)
+                  AZURE_TARGET_SUBSCRIPTION_ID: $(SpokeSubID)
+                  CHECKOV_SKIP_TESTS: "CKV2_AZURE_1,CKV2_AZURE_8,CKV2_AZURE_18,CKV2_AZURE_21,CKV_AZURE_33,CKV_AZURE_34,CKV_AZURE_35"
+
+    - ${{ if eq(parameters.RUN_BUILD, true) }}:
+
+        - stage: "Code_Deploy"
+          displayName: "Code Deploy Stage"
+          jobs:
+            - job: Wait_For_Validation
+              displayName: "Wait for external validation"
+              pool: server
+              timeoutInMinutes: 4320 # job times out in 3 days
+              steps:
+                - task: ManualValidation@0
+                  displayName: "Waiting for Approval"
+                  timeoutInMinutes: 1440 # task times out in 1 day
+                  inputs:
+                    notifyUsers: |
+                      craig@craigthacker.dev
+                    instructions: 'Please validate the build configuration and resume'
+                    onTimeout: 'reject'
+
+            - job: Code_Build
+              dependsOn: Wait_For_Validation
+              condition: eq(dependencies.Wait_For_Validation.result,'succeeded')
+              workspace:
+                clean: all
+              displayName: "Code Build and Deploy"
+              steps:
+                - checkout: self
+                - checkout: azure-naming-convention
+
+                # Remotely fetch pipeline template, in this case, I am using one in my development repo.
+                - template: /.azurepipelines/.templates/.dotnet/generic-function-app-package-and-deploy.yml@azdo-azure-function-package-and-deploy-pipeline-template
+                  parameters:
+                    CODE_PATH: "$(Build.SourcesDirectory)/get-azure-microsoft-ips-function-app/src"
+                    CODE_ARCH: "x64"
+                    CODE_VERSION: "3.9"
+                    AZDO_SERVICE_CONNECTION_NAME: "svp-ldo-euw-dev-mgt-01"
+                    FUNCTION_APP_NAME: "fnc-ldo-euw-dev-01"
+                    FUNCTION_CORE_TOOLS_VERSION: "4"
