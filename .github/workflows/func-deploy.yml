@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  azure-terraform-job:
+  azure-function-job:
     name: 'Func Deploy'
     runs-on: ubuntu-latest
     environment: tst
