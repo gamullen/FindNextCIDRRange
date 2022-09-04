@@ -141,11 +141,11 @@ resource "azurerm_storage_container" "web_blob_container" {
 
 #Needed for app
 resource "azurerm_role_assignment" "id_reader" {
-  principal_id = lookup(module.fnc_app.fnc_identity, "principal_id", "**ERROR**")
+  principal_id = data.azurerm_user_assigned_identity.mgmt_user_assigned_id.principal_id
   scope        = module.rg.rg_id
   role_definition_name = "Reader"
 }
 
 output "id" {
-  value = module.fnc_app.fnc_identity
+  value = lookup(module.fnc_app.fnc_identity, "principal_id", "Error)"
 }
