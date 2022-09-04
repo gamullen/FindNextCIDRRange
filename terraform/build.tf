@@ -147,5 +147,5 @@ resource "azurerm_role_assignment" "id_reader" {
 }
 
 output "id" {
-  value = lookup(module.fnc_app.fnc_identity, "principal_id", "Error)"
+  value = lookup(module.fnc_app.fnc_identity, "principal_id", "Error")
 }
