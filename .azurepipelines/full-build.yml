@@ -54,7 +54,7 @@ resources:
   - repository: azdo-azure-function-package-and-deploy-pipeline-template
     type: github
     endpoint: github_service_connection
-    name: libre-devops/azdo-azure-function-package-and-deploy-pipeline-template
+    name: libre-devops/azure-function-azdo-pipeline-template
     ref: main
 
 # Sets stage so that multiple stages can be used if needed, as it stands, only 1 stage is expected and is thus passed as a parameter
