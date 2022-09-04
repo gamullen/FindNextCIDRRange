@@ -1,4 +1,4 @@
-name: 'Terraform Apply'
+name: 'Func Deploy
 
 # Allow run manually
 on:
