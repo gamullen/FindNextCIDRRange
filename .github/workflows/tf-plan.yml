@@ -1,0 +1,40 @@
+name: 'Terraform Plan'
+
+# Allow run manually
+on:
+  workflow_dispatch:
+
+
+jobs:
+  azure-terraform-job:
+    name: 'Terraform Build'
+    runs-on: ubuntu-latest
+    environment: tst
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Libre DevOps - Run Terraform for Azure - GitHub Action
+        id: terraform-build
+        uses: libre-devops/azure-terraform-gh-action@v1
+        with:
+          terraform-path: "terraform"
+          terraform-workspace-name: "dev"
+          terraform-backend-storage-rg-name: ${{ secrets.SpokeSaRgName }}
+          terraform-backend-storage-account-name: ${{ secrets.SpokeSaName }}
+          terraform-backend-blob-container-name: ${{ secrets.SpokeSaBlobContainerName }}
+          terraform-backend-storage-access-key: ${{ secrets.SpokeSaPrimaryKey }}
+          terraform-backend-state-name: "lbdo-dev-gh.terraform.tfstate"
+          terraform-provider-client-id: ${{ secrets.SpokeSvpClientId }}
+          terraform-provider-client-secret: ${{ secrets.SpokeSvpClientSecret }}
+          terraform-provider-subscription-id: ${{ secrets.SpokeSubId }}
+          terraform-provider-tenant-id: ${{ secrets.SpokeTenantId }}
+          terraform-compliance-path: "git:https://github.com/libre-devops/azure-naming-convention.git//?ref=main"
+          checkov-skipped-tests: "CKV_AZURE_116,CKV_AZURE_117,CKV_AZURE_137,CKV_AZURE_138,CKV_AZURE_139,CKV_AZURE_141,CKV_AZURE_145,CKV_AZURE_151,CKV_AZURE_33,CKV_AZURE_34,CKV_AZURE_35,CKV_AZURE_4,CKV_AZURE_44,CKV_AZURE_50,CKV_AZURE_7,CKV_AZURE_98,CKV2_AZURE_1,CKV2_AZURE_18,CKV2_AZURE_21,CKV2_AZURE_8"
+          run-terraform-destroy: "false"
+          run-terraform-plan-only: "true"
