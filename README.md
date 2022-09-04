@@ -42,6 +42,8 @@ With example output:
 }
 ```
 
+_Please note, my function app will be taken down by Terraform regularly, chances are if you try to test query it, it will fail_
+
 ## Building the environment
 
 At the time of writing, this project only supports Azure DevOps continuous integration and is set up to deploy using some expected items in the Libre DevOps Azure DevOps instance.
