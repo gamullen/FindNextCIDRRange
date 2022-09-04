@@ -103,13 +103,15 @@ module "fnc_app" {
 
   app_name        = "fnc-${var.short}-${var.loc}-${terraform.workspace}-01"
   service_plan_id = module.plan.service_plan_id
+  app_settings = {
+    FUNCTIONS_WORKER_RUNTIME = "dotnet"
+  }
 
   storage_account_name          = module.sa.sa_name
   storage_account_access_key    = module.sa.sa_primary_access_key
   storage_uses_managed_identity = "false"
 
-  identity_type               = "UserAssigned"
-  identity_ids                = [data.azurerm_user_assigned_identity.mgmt_user_assigned_id.id]
+  identity_type               = "SystemAssigned"
   functions_extension_version = "~4"
 
   settings = {
@@ -126,7 +128,6 @@ module "fnc_app" {
       enabled                        = false
       runtime_version                = "~1"
       unauthenticated_client_action  = "AllowAnonymous"
-
     }
   }
 }
@@ -143,4 +144,8 @@ resource "azurerm_role_assignment" "id_reader" {
   principal_id = data.azurerm_user_assigned_identity.mgmt_user_assigned_id.principal_id
   scope        = module.rg.rg_id
   role_definition_name = "Reader"
+}
+
+output "id" {
+  value = module.fnc_app.fnc_identity
 }
