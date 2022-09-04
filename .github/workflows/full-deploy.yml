@@ -1,6 +1,6 @@
 name: 'CIDR Function App CICD'
 
-# Allow run manually
+# Allow run manually and ci/cd
 on:
   push:
     branches:
