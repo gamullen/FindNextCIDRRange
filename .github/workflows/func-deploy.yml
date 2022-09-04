@@ -26,5 +26,4 @@ jobs:
           code-client-id: ${{ secrets.SPOKESVPCLIENTID }}
           code-client-secret: ${{ secrets.SPOKESVPCLIENTSECRET }}
           code-tenant-id: ${{ secrets.SPOKETENANTID }}
-          code-app-cmd: func azure functionapp
-
+          code-app-cmd: echo "hello" && func --help && $(func azure --help)
