@@ -2,11 +2,11 @@ name: 'CIDR Function App CICD'
 
 # Allow run manually and ci/cd
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [ closed ]
+#  push:
+#    branches:
+#      - main
+#  pull_request:
+#    types: [ closed ]
   workflow_dispatch:
 
 jobs:
