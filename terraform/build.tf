@@ -155,5 +155,5 @@ locals {
 }
 
 output "identity_test" {
-  value = local.identity_test
+  value = lookup(local.identity_test, "principal_id", "error")
 }
