@@ -130,8 +130,6 @@ stages:
                 - template: /.azurepipelines/.templates/.dotnet/generic-function-app-package-and-deploy.yml@azdo-azure-function-package-and-deploy-pipeline-template
                   parameters:
                     CODE_PATH: "$(Build.SourcesDirectory)/get-azure-microsoft-ips-function-app/src"
-                    CODE_ARCH: "x64"
-                    CODE_VERSION: "3.9"
                     AZDO_SERVICE_CONNECTION_NAME: "svp-ldo-euw-dev-mgt-01"
                     FUNCTION_APP_NAME: "fnc-ldo-euw-dev-01"
                     FUNCTION_CORE_TOOLS_VERSION: "4"
