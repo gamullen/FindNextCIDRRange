@@ -1,0 +1,30 @@
+name: 'Func Deploy'
+
+# Allow run manually
+on:
+  workflow_dispatch:
+
+jobs:
+  azure-function-job:
+    name: 'Func Deploy'
+    runs-on: ubuntu-latest
+    environment: tst
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Libre DevOps - Deploy Azure Function App -  GitHub Action
+        id: func-deploy
+        uses: libre-devops/azure-function-app-deployment-gh-action@v1
+        with:
+          code-path: "src/Find-NextCidrRange"
+          code-client-id: ${{ secrets.SPOKESVPCLIENTID }}
+          code-client-secret: ${{ secrets.SPOKESVPCLIENTSECRET }}
+          code-tenant-id: ${{ secrets.SPOKETENANTID }}
+          code-app-name: fnc-ldo-euw-dev-01
+          code-additional-params: --csharp --force
