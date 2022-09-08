@@ -50,9 +50,29 @@ At the time of writing, this project only supports Azure DevOps continuous integ
 
 You can freely use the modules used to deploy these resources as well as the pipeline templates, but setting up the bits in between will be up to you.
 
-### Terraform Build
+
+## Terraform Build
+
+### Disclaimer
+
+This solutions is _not_ turnkey and won't take into considerations the perimeter network and identity policies you will have in your tenant.  The automation is provided as-is for a quick setup and is not intended for production deployments. Please be sure to conduct due diligence when using.
+
+The build will deploy:
 - 1x Resource Group
 - 1x Linux Function app on Consumption Service Plan with Dotnet 6.0 Application Stack (up to date with the v3 Azurerm provider changes in terraform)
 - 1x Storage Account, Hot access tier
 - 1x Blob container with blob (anonymous access) for the URLs
 
+### How to use
+
+To use the terraform bui.d, you will need to _already have_ a virtual network created, as well as knowing the name of the resource group is in, as well as having IAM access to read and assign permissions to this resource (e.g Owner or Reader + User Access Administrator) 
+
+Next, simply edit the `run-terraform.sh` script with the variables placed at the top of the script, which will then be passed to terraform.  The shell script **requires** the `azure-cli`, `curl`, and `jq` to work. It will check if they are installed. in its default state, as it is using it as its authentication method to terraform.  
+
+Again, you will need various IAM access to run this terraform under your account, but you are free to adapt it to run under a service principal or managed identity :smile:
+
+An example is something like so
+
+```shell
+
+```
