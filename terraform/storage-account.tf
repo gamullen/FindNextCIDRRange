@@ -10,7 +10,7 @@ module "sa" {
   location = module.rg.rg_location
   tags     = module.rg.rg_tags
 
-  storage_account_name            = "st${random_string.random.result}"
+  storage_account_name            = lower("st${random_string.random.result}")
   access_tier                     = "Hot"
   identity_type                   = "SystemAssigned"
   allow_nested_items_to_be_public = true
