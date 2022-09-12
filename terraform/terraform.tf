@@ -1,12 +1,10 @@
 terraform {
-  #Use the latest by default, uncomment below to pin or use hcl.lck
   required_providers {
     azurerm = {
-      source = "hashicorp/azurerm"
-      #      configuration_aliases = [azurerm.default-provider]
-      #      version = "~> 2.68.0"
+      source  = "hashicorp/azurerm"
+      version = "> 3.1.0"
     }
   }
-  backend "azurerm" {
+  backend "local" {
   }
 }
