@@ -1,9 +1,8 @@
-from azure.identity import DefaultAzureCredential, ClientSecretCredential
-from azure.mgmt.resource import ResourceManagementClient
-import azure.functions as func
+from azure.identity import ClientSecretCredential
+from azure.mgmt.network import NetworkManagementClient
 import os
 import logging
-import datetime
+from ipaddress import IPv4Network
 
 
 def azure_authenticate():
@@ -16,61 +15,85 @@ def azure_authenticate():
     return credentials
 
 
-def propose_subnet(virtual_network_name, resource_group_name, cidr_string):
+def find_available_subnet(
+    subscription_id, resource_group_name, virtual_network_name, cidr
+):
     subscription_id = os.environ["ARM_SUBSCRIPTION_ID"]
-    arm_client = ResourceManagementClient(azure_authenticate(), subscription_id)
     api_version = "2022-11-01"
-    v_nets = arm_client.get_default_subscription().get_virtual_networks()
-
-    v_net = None
-    error_message = None
-    http_status_code = None
-    error = None
     success = False
-    found_bad_subnet_in_candidate_cidr = False
     found_subnet = None
-    proposed_subnet_response = {}
+    http_status_code = None
 
     try:
-        if cidr_string:
-            cidr = int(cidr_string)
-            if cidr > 0 and cidr <= 32:
-                for v_net2 in v_nets:
-                    if virtual_network_name == v_net2.data.name and resource_group_name == v_net2.id.resource_group_name:
-                        v_net = v_net2
+        cidr = int(cidr)
+        if cidr >= 0 and cidr <= 32:
+            # Create a Network Management Client
+            network_client = NetworkManagementClient(
+                credentials=azure_authenticate(), subscription_id=subscription_id
+            )
+
+            # Get the virtual network
+            virtual_network = next(
+                (
+                    x
+                    for x in network_client.virtual_networks.list(resource_group_name)
+                    if x.name == virtual_network_name
+                ),
+                None,
+            )
+
+            if virtual_network is None:
+                logging.error(
+                    "Virtual network {virtual_network_name} not found in resource group "
+                    "{resource_group_name}"
+                )
+            else:
+                # Check if the specified CIDR is within the range of the address prefixes of the virtual network
+                address_prefixes = virtual_network.address_space.address_prefixes
+                cidr_within_range = False
+                for prefix in address_prefixes:
+                    network = IPv4Network(prefix)
+                    if cidr <= network.prefixlen:
+                        cidr_within_range = True
                         break
 
-                if not v_net:
-                    error_message = "Virtual network {} not found in resource group {}".format(virtual_network_name,
-                                                                                               resource_group_name)
+                if not cidr_within_range:
+                    logging.error(
+                        f"VNet {resource_group_name}/{virtual_network_name} cannot accept a "
+                        f"subnet of size {cidr}"
+                    )
+                    http_status_code = 404
                 else:
-                    proposed_subnet_response["name"] = virtual_network_name
-                    proposed_subnet_response["id"] = v_net.id
-                    proposed_subnet_response["type"] = v_net.id.resource_type
-                    proposed_subnet_response["location"] = v_net.data.location
+                    # Get the subnets of the virtual network
+                    subnets = [
+                        IPv4Network(x.address_prefix) for x in virtual_network.subnets
+                    ]
 
-                    v_net_cidrs = {}
-                    for ip in v_net.data.address_space.address_prefixes:
-                        v_net_cidr = IPNetwork(ip)
-                        if cidr >= v_net_cidr.cidr:
-                            v_net_cidrs[hash(v_net_cidr)] = v_net_cidr
+                    # Check if a subnet with the specified CIDR is available
+                    candidate_subnets = list(network.subnets(cidr))
+                    for candidate_subnet in candidate_subnets:
+                        if not success:
+                            found_bad_subnet_in_candidate = False
+                            for used_subnet in subnets:
+                                if (
+                                    not found_bad_subnet_in_candidate
+                                    and not used_subnet.overlaps(candidate_subnet)
+                                ):
+                                    success = True
+                                    found_subnet = candidate_subnet.__str__()
+                                else:
+                                    found_bad_subnet_in_candidate = True
+                            if found_bad_subnet_in_candidate:
+                                success = False
+                                found_bad_subnet_in_candidate = False
+                                http_status_code = 404
 
-                    for candidate_cidr in v_net_cidrs.values():
-                        candidate_subnets = candidate_cidr.subnet(cidr)
-                        used_subnets = []
-
-                        used_subnets_azure = v_net.get_subnets()
-
-                        for used_subnet in used_subnets_azure:
-                            used_subnets.append(IPNetwork(used_subnet.data.address_prefix))
-
-                        for candidate_subnet in candidate_subnets:
-                            if not success:
-                                found_bad_subnet_in_candidate_cidr = False
-                                for used_subnet in used_subnets:
-                                    if not found_bad_subnet_in_candidate_cidr and not used_subnet.overlaps(
-                                            candidate_subnet):
-                                        success = True
-                                        found_subnet = str(candidate_subnet)
-                                    else:
-                                        found_bad_subnet_in_candidate_cidr = True
+                    if not success:
+                        http_status_code = 404
+                        logging.error(
+                            f"VNet {resource_group_name}/{virtual_network_name} cannot accept a subnet of size {cidr}"
+                        )
+        else:
+            logging.error("Invalid CIDR size, must be between 0 and 32")
+    except Exception as e:
+        logging.error(f"Error has been encountered {e}")
