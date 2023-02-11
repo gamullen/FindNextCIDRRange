@@ -15,25 +15,27 @@ console_handler.setLevel(logging.DEBUG)
 root_logger = logging.getLogger()
 root_logger.addHandler(console_handler)
 
-subscription_id = os.environ["ARM_SUBSCRIPTION_ID"]
-resource_group_name = "rg-ldo-euw-dev-build"
+sub_id = os.environ["ARM_SUBSCRIPTION_ID"]
+rg_name = "rg-ldo-euw-dev-build"
 vnet_name = "vnet-ldo-euw-dev-01"
 
 
 def azure_authenticate():
-    client_id = os.environ["ARM_CLIENT_ID"]
-    client_secret = os.environ["ARM_CLIENT_SECRET"]
-    tenant_id = os.environ["ARM_TENANT_ID"]
-    credentials = ClientSecretCredential(
-        client_id=client_id, client_secret=client_secret, tenant_id=tenant_id
-    )
-    return credentials
+    try:
+        client_id = os.environ["ARM_CLIENT_ID"]
+        client_secret = os.environ["ARM_CLIENT_SECRET"]
+        tenant_id = os.environ["ARM_TENANT_ID"]
+        credentials = ClientSecretCredential(
+            client_id=client_id, client_secret=client_secret, tenant_id=tenant_id
+        )
+        return credentials
+    except Exception as e:
+        logging.error(f"Error encountered when trying to authenticate to Azure: {e}")
 
 
 def find_available_subnet(
     subscription_id, resource_group_name, new_subnet_size, virtual_network_name
 ):
-    success = False
 
     try:
         # Checks that new subnet size is integer, and it is compliant with RFC standard
@@ -82,55 +84,20 @@ def find_available_subnet(
                     exit(1)
                 else:
                     # Get the subnets of the virtual network object return from Azure
-                    subnets = [
+                    used_subnets = [
                         IPv4Network(subnet.address_prefix)
                         for subnet in virtual_network.subnets
                     ]
                     logging.info(
-                        f"The subnets within the {virtual_network_name} are {virtual_network.subnets}"
+                        f"The subnets used within the {virtual_network_name} are {virtual_network.subnets}"
                     )
-                    print(subnets)
-
-                    # Calculate the possible subnets from the address space and subnet size asked for - gets a list
-                    # of all IPNetworks with a /24 prefix
-                    candidate_subnets = list(
-                        network.subnets(new_prefix=new_subnet_size)
-                    )
-                    logging.info(
-                        f"The possible {new_subnet_size} subnets available within {network} are: {candidate_subnets}"
-                    )
-
-                    for candidate_subnet in candidate_subnets:
-                        logging.info(
-                            f"Checking if {candidate_subnet} is being used within {vnet_name}"
-                        )
-                        if not success:
-                            found_bad_subnet_in_candidate = False
-                            for used_subnet in subnets:
-                                logging.info(
-                                    f"{used_subnet} is being used within {vnet_name}"
-                                )
-                                if (
-                                    not found_bad_subnet_in_candidate
-                                    and not used_subnet.overlaps(candidate_subnet)
-                                ):
-                                    suggested_available_subnet = (
-                                        candidate_subnet.__str__()
-                                    )
-                                    logging.info(
-                                        f"The suggested, next available subnet is {suggested_available_subnet}"
-                                    )
-                                    return suggested_available_subnet
-                                else:
-                                    found_bad_subnet_in_candidate = True
-                            if found_bad_subnet_in_candidate:
-                                success = False
-                    if not success:
-                        logging.error(
-                            f"VNet {resource_group_name}/{virtual_network_name} cannot accept "
-                            f"a subnet of size {new_subnet_size}"
-                        )
-                        exit(1)
+                    used_subnets = sorted(used_subnets)
+                    for subnet in network.subnets(new_prefix=new_subnet_size):
+                        if not any(
+                            subnet.subnet_of(used) for used in used_subnets
+                        ) and not any(subnet.overlaps(used) for used in used_subnets):
+                            return subnet
+                    return None
         else:
             logging.error("Invalid CIDR size, must be between 0 and 32")
     except Exception as e:
@@ -138,10 +105,10 @@ def find_available_subnet(
 
 
 result = find_available_subnet(
-    subscription_id=subscription_id,
-    resource_group_name=resource_group_name,
+    subscription_id=sub_id,
+    resource_group_name=rg_name,
     virtual_network_name=vnet_name,
-    new_subnet_size="24",
+    new_subnet_size="32",
 )
 
 print(result)
