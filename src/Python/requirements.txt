@@ -1,6 +1,7 @@
 azure-functions
-requests
 datetime
 azure-identity
 azure-mgmt-resource
-azure-functions
+azure-mgmt-network
+ipaddress
+logging
