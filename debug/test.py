@@ -96,7 +96,7 @@ def find_available_subnet(
                         if not any(
                             subnet.subnet_of(used) for used in used_subnets
                         ) and not any(subnet.overlaps(used) for used in used_subnets):
-                            return subnet
+                            return subnet.__str__()
                     return None
         else:
             logging.error("Invalid CIDR size, must be between 0 and 32")
