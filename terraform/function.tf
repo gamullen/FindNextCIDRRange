@@ -34,8 +34,7 @@ module "fnc_app" {
     ARM_TENANT_ID              = data.azurerm_client_config.current_creds.tenant_id
     FUNCTION_APP_NAME          = "fnc-${var.short}-${var.loc}-${terraform.workspace}-01"
     RESOURCE_GROUP_NAME        = module.rg.rg_name
-    WEBSITE_RUN_FROM_PACKAGE   = "https://${module.sa.sa_name}.blob.core.windows.net/${azurerm_storage_container.storage_container_function.name}/${azurerm_storage_blob.storage_blob_function.name}${data.azurerm_storage_account_blob_container_sas.storage_account_blob_container_sas.sas}",
-
+#    WEBSITE_RUN_FROM_PACKAGE   = "https://${module.sa.sa_name}.blob.core.windows.net/${azurerm_storage_container.storage_container_function.name}/${azurerm_storage_blob.storage_blob_function.name}${data.azurerm_storage_account_blob_container_sas.storage_account_blob_container_sas.sas}",
   }
 
   storage_account_name          = module.sa.sa_name
