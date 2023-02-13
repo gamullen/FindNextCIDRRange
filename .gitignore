@@ -528,3 +528,4 @@ override.tf.json
 terraform.rc
 !/debug/
 /terraform/function.zip
+/src/Python/.python_packages/

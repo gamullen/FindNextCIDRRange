@@ -9,7 +9,7 @@ module "plan" {
   add_to_app_service_environment = false
 
   os_type  = "Linux"
-  sku_name = "P1v2"
+  sku_name = "Y1"
 }
 
 #checkov:skip=CKV2_AZURE_145:TLS 1.2 is allegedly the latest supported as per hashicorp docs

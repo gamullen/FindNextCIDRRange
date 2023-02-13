@@ -51,7 +51,7 @@ Later, you may find it useful to use it with terraform, you can do this using th
 ```hcl
 
 locals {
-  subscription_id      = "09d383ee-8ed0-4374-ad9f-3344cabc323"
+  subscription_id      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
   resource_group_name  = "rg-ldo-euw-dev-build"
   virtual_network_name = "vnet-ldo-euw-dev-01"
   subnet_size          = 24
@@ -71,11 +71,22 @@ _Please note, my function app will be taken down by Terraform regularly, chances
 
 At the time of writing, this project only supports Azure DevOps continuous integration and is set up to deploy using some expected items in the Libre DevOps Azure DevOps instance.
 
-You can freely use the modules used to deploy these resources as well as the pipeline templates, but setting up the bits in between will be up to you.
+You can freely use the Libre DevOps terraform modules used to deploy these resources as well as the pipeline templates, but setting up the bits in between will be up to you.  You can find this code in the `terraform/` folder, and will need the usual stuff.
 
 ### Terraform Build
-- 1x Resource Group
-- 1x Linux Function app on Consumption Service Plan with Python3 Application Stack (up to date with the v3 Azurerm provider changes in terraform)
-- 1x Storage Account, Hot access tier
-- 1x Blob container with blob (anonymous access) for the URLs
 
+The terraform build (should you wish to use it) deploys a number of resources as well as sets up permissions and some access keys.  At a high level it:
+
+- Deploys 1x Resource Group
+- Deploys 1x Linux App Service Plan on a Consumpution Plan Basis
+- Deploys 1x Storage Account, hot access tier, with 1 blob container, a SAS key and stores the repos code as a ZIP file in that blob container
+- Deploys 1x Log Analytics Workspace (for Application Insights, a shared ID is recomended for larger enterprises.)
+- Deploys 1x Linux Function App with Web based application insights
+- Deploys 1x Role Assignment to give  the SystemAssigned Managed Identity of the Function App access to the Tenant Root Group as Network Contributor (needed to list the subnets etc).  This can be assigned at a smaller scope should you configure it to do so.
+
+
+## Known Bugs
+
+### Deploying with anything greater than Python 3.9x
+
+If you try to deploy the code using an interpeter newer than Python3.9, you will likely get some bugs from the package versions in the crypto library.  I am working on making this a docker container so I don't need to put up with it myself.

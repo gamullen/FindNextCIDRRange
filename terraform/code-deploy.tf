@@ -8,7 +8,7 @@ locals {
   code_path                = "../src/Python"
   dependencies_path        = "${local.code_path}/requirements.txt"
   shell_interpreter        = ["pwsh", "-Command"]
-  dependencies_install     = "pip install --target='.python_packages/lib/site-packages' ${local.dependencies_path}"
+  dependencies_install     = "pip install --target='${local.code_path}/.python_packages/lib/site-packages' -r ${local.dependencies_path}"
   output_file_name         = "${local.project_name}.${local.archive_file_type}"
   output_path              = "${path.module}/${local.output_file_name}"
 }
