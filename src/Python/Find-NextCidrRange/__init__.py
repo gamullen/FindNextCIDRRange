@@ -3,7 +3,6 @@ from ipaddress import IPv4Network
 from azure.mgmt.network import NetworkManagementClient
 from azure.identity import DefaultAzureCredential
 import azure.functions as func
-import sys
 import traceback
 
 
@@ -87,8 +86,7 @@ def main(findnextcidr: func.HttpRequest) -> func.HttpResponse:
             virtual_network_name=virtual_network_name,
             new_subnet_size=new_subnet_size,
         )
-
-        return func.HttpResponse(result)
     except Exception as e:
         error = str(e) + "\n" + traceback.format_exc()
-        return func.HttpResponse(error, status_code=500)
+        return func.HttpResponse(f"An error has occured within the app: {error}", status_code=500)
+    return func.HttpResponse(result)
