@@ -42,7 +42,7 @@ jobs:
           checkov-skipped-tests: "CKV_AZURE_212,CKV_AZURE_206,CKV_AZURE_190,CKV_AZURE_59,CKV_SECRET_3,CKV_AZURE_97,CKV_AZURE_116,CKV_AZURE_117,CKV_AZURE_137,CKV_AZURE_138,CKV_AZURE_139,CKV_AZURE_141,CKV_AZURE_145,CKV_AZURE_151,CKV_AZURE_33,CKV_AZURE_34,CKV_AZURE_35,CKV_AZURE_4,CKV_AZURE_44,CKV_AZURE_50,CKV_AZURE_7,CKV_AZURE_98,CKV2_AZURE_1,CKV2_AZURE_18,CKV2_AZURE_21,CKV2_AZURE_8"
           run-terraform-destroy: "false"
           run-terraform-plan-only: "false"
-          terraform-version: "1.1.9"
+          terraform-version: "1.3.0"
 
   azure-function-job:
     name: 'Func Deploy'
