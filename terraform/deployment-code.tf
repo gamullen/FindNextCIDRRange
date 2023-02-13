@@ -1,6 +1,8 @@
 locals {
   # These may depend on the project so I have tried to template them out
   project_name             = "function"
+  now                       = timestamp()
+  seven_days_from_now      = timeadd(timestamp(), "7d")
   archive_file_type        = "zip"
   code_blob_container_name = "${local.project_name}releases"
   code_path                = "../src/Python"
@@ -14,6 +16,23 @@ locals {
 resource "azurerm_storage_container" "storage_container_function" {
   name                 = local.code_blob_container_name
   storage_account_name = module.sa.sa_name
+}
+
+data "azurerm_storage_account_blob_container_sas" "storage_account_blob_container_sas" {
+  connection_string = module.sa.sa_primary_connection_string
+  container_name    = azurerm_storage_container.storage_container_function.name
+
+  start = local.now
+  expiry = local.seven_days_from_now
+
+  permissions {
+    read   = true
+    add    = false
+    create = false
+    write  = false
+    delete = false
+    list   = false
+  }
 }
 
 resource "azurerm_storage_blob" "storage_blob_function" {
