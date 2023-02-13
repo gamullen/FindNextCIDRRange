@@ -4,7 +4,7 @@ Hello :wave:
 
 This repo is a fork from the original creator [gamullen](https://github.com/gamullen/FindNextCIDRRange)
 
-The fork aims to add some functionality to the app, as well as integrate it with some CI/CD, terraform and other bits and bobs.
+The fork aims to re-write the app in Python or atleast something similar to it, as well as integrate it with some CI/CD, terraform and other bits and bobs.
 
 ## What this Function App does
 
@@ -20,29 +20,52 @@ The function itself is an HTTP function, which, will only run on request. Please
 **Worth a note, that this won't work out the box for you, you are expected to use your own intuition or reach out for help :smile:**
 
 There are 1 functions:
-- `Get-Cidir` 
+- `Find-NextCidrRange` 
 
 You can query the API by feeding it the parameters in the following format via a HTTP GET request:
 
-`https://{{pathToFunctionApp}}?subscriptionId={{subscriptionId}}&resourceGroupName={{resourceGroupName}}&virtualNetworkName={{virtualNetworkName}}&cidr={{cidr}}`
+`https://{{pathToFunctionApp}}?subscription_id={{subscriptionId}}&resource_group_name={{resourceGroupName}}&virtual_network_name={{virtualNetworkName}}&new_subnet_size={{cidr}}`
 
 So, for example:
 
-`https://fnc-ldo-euw-dev-01.azurewebsites.net/api/getcidr?subscriptionId=09d383ee-8ed0-4374-ad9f-3344cabc323b&resourceGroupName=rg-ldo-euw-dev-build&virtualNetworkName=vnet-ldo-euw-dev-01&cidr=26`
+`https://fnc-ldo-euw-dev-01.azurewebsites.net/api/Find-NextCidrRange?subscription_id=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee&resource_group_name=rg-ldo-euw-dev-build&virtual_network_name=vnet-ldo-euw-dev-01&new_subnet_size=24`
 
-With example output:
+The result is given back as a suggested subnet in your range, for example:
 
-```json
-{
-  "name": "vnet-ldo-euw-dev-01",
-  "id": "/subscriptions/09d383ee-8ed0-4374-ad9f-3344cabc323b/resourceGroups/rg-ldo-euw-dev-build/providers/Microsoft.Network/virtualNetworks/vnet-ldo-euw-dev-01",
-  "type": "Microsoft.Network/virtualNetworks",
-  "location": "westeurope",
-  "proposedCIDR": "10.0.0.0/26"
-}
+```text
+curl -X GET "https://fnc-ldo-euw-dev-01.azurewebsites.net/api/Find-NextCidrRange?subscription_id=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee&resource_group_name=rg-ldo-euw-dev-build&virtual_network_name=vnet-ldo-euw-dev-01&new_subnet_size=24"
+10.0.0.0/24
 ```
 
-_Please note, my function app will be taken down by Terraform regularly, chances are if you try to test query it, it will fail_
+## Other Usages
+
+If you would like to test the functionality of the script without deploying the app, check out the `debug/` folder, which is essentially the same code, but made with the intent of not using it inside a function app and querying directly.
+
+```python
+python3 debug/test.py
+10.0.0.0/24
+```
+
+Later, you may find it useful to use it with terraform, you can do this using the HTTP resource:
+
+```hcl
+
+locals {
+  subscription_id      = "09d383ee-8ed0-4374-ad9f-3344cabc323"
+  resource_group_name  = "rg-ldo-euw-dev-build"
+  virtual_network_name = "vnet-ldo-euw-dev-01"
+  subnet_size          = 24
+}
+
+data "http" "next_subnet" {
+  url = "https://fnc-ldo-euw-dev-01.azurewebsites.net/api/Find-NextCidrRange?subscription_id=${local.subscription_id}&resource_group_name=${local.resource_group_name}&virtual_network_name=${local.virtual_network_name}&new_subnet_size=${local.subnet_size}"
+}
+
+output "next_subnet" {
+  value = data.http.next_subnet.response_body
+}
+
+_Please note, my function app will be taken down by Terraform regularly, chances are if you try to test query it, it will fail, so it is suggested you try your own_
 
 ## Building the environment
 
@@ -52,7 +75,7 @@ You can freely use the modules used to deploy these resources as well as the pip
 
 ### Terraform Build
 - 1x Resource Group
-- 1x Linux Function app on Consumption Service Plan with Dotnet 6.0 Application Stack (up to date with the v3 Azurerm provider changes in terraform)
+- 1x Linux Function app on Consumption Service Plan with Python3 Application Stack (up to date with the v3 Azurerm provider changes in terraform)
 - 1x Storage Account, Hot access tier
 - 1x Blob container with blob (anonymous access) for the URLs
 

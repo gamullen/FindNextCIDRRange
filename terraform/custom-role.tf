@@ -2,10 +2,6 @@ data "azurerm_role_definition" "network_contributor" {
   name = "Network Contributor"
 }
 
-data "azurerm_role_definition" "storage_account_blob_data_contributor" {
-  name = "Storage Blob Data Contributor"
-}
-
 module "roles" {
   source = "registry.terraform.io/libre-devops/custom-roles/azurerm"
 
@@ -20,13 +16,6 @@ module "roles" {
       role_assignment_scope                 = data.azurerm_management_group.current_mgmt_group.id # Tenant root group
       role_assignment_assignee_principal_id = module.fnc_app.fnc_identity[0].principal_id
     },
-    {
-      role_definition_id                    = data.azurerm_role_definition.storage_account_blob_data_contributor.role_definition_id
-      role_assignment_name                  = "${replace(replace(title(module.fnc_app.fnc_app_name), "-", ""), " ", "")}${replace(data.azurerm_role_definition.storage_account_blob_data_contributor.name, " ", "")}Assignment"
-      role_assignment_description           = "Role Assignment to assign function ${module.fnc_app.fnc_app_name} as ${data.azurerm_role_definition.storage_account_blob_data_contributor.name}"
-      role_assignment_scope                 = module.sa.sa_id # Tenant root group
-      role_assignment_assignee_principal_id = module.fnc_app.fnc_identity[0].principal_id
-    }
   ]
 }
 

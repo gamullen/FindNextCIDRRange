@@ -42,7 +42,7 @@ def find_available_subnet(
     try:
         if 0 <= new_subnet_size <= 32:
             network_client = NetworkManagementClient(
-                DefaultAzureCredential(), subscription_id=subscription_id
+                azure_authenticate(), subscription_id=subscription_id
             )
 
             list_virtual_networks = network_client.virtual_networks.list(
