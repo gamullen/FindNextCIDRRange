@@ -1,31 +1,20 @@
-from azure.identity import DefaultAzureCredential
-from azure.mgmt.network import NetworkManagementClient
-from ipaddress import IPv4Network
-import azure.functions as func
 import logging
-import datetime
-
-
-def main(findnextcidr: func.HttpRequest) -> func.HttpResponse:
-    utc_timestamp = (
-        datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()
-    )
-
-    credential = DefaultAzureCredential()
+from ipaddress import IPv4Network
+from azure.mgmt.network import NetworkManagementClient
+from azure.identity import DefaultAzureCredential
+from azure.functions import HttpRequest
 
 
 def find_available_subnet(
-    subscription_id, resource_group_name, virtual_network_name, new_subnet_size
+    subscription_id: str,
+    resource_group_name: str,
+    virtual_network_name: str,
+    new_subnet_size: int,
 ):
-    credential = DefaultAzureCredential()
-
     try:
-        # Checks that new subnet size is integer, and it is compliant with RFC standard
-        new_subnet_size = int(new_subnet_size)
         if 0 <= new_subnet_size <= 32:
-            # Create a Network Management Client
             network_client = NetworkManagementClient(
-                credential, subscription_id=subscription_id
+                DefaultAzureCredential(), subscription_id=subscription_id
             )
 
             list_virtual_networks = network_client.virtual_networks.list(
@@ -39,14 +28,11 @@ def find_available_subnet(
                     break
 
             if virtual_network is None:
-                return func.HttpResponse(
+                logging.error(
                     "Virtual network {virtual_network_name} not found in resource group "
-                    "{resource_group_name}",
-                    status_code=400,
+                    "{resource_group_name}"
                 )
-
             else:
-                # Check if the specified CIDR is within the range of the address prefixes of the virtual network
                 address_prefixes = virtual_network.address_space.address_prefixes
                 cidr_within_range = False
                 for prefix in address_prefixes:
@@ -61,14 +47,11 @@ def find_available_subnet(
                         break
 
                 if not cidr_within_range:
-
-                    return func.HttpResponse(
+                    logging.error(
                         f"VNet {resource_group_name}/{virtual_network_name} cannot accept a "
-                        f"subnet of size {new_subnet_size}",
-                        status_code=400
+                        f"subnet of size {new_subnet_size}"
                     )
                 else:
-                    # Get the subnets of the virtual network object return from Azure
                     used_subnets = [
                         IPv4Network(subnet.address_prefix)
                         for subnet in virtual_network.subnets
@@ -81,22 +64,25 @@ def find_available_subnet(
                         if not any(
                             subnet.subnet_of(used) for used in used_subnets
                         ) and not any(subnet.overlaps(used) for used in used_subnets):
-                            return func.HttpResponse(
-                                subnet.__str__(),
-                                status_code=200
-                            )
-                    return func.HttpResponse(
-                        status_code=404
-                    )
+                            return subnet.__str__()
+                    return None
         else:
             logging.error("Invalid CIDR size, must be between 0 and 32")
-            return func.HttpResponse(
-                "Invalid CIDR size, must be between 0 and 32",
-                status_code=400
-            )
     except Exception as e:
         logging.error(f"Error has been encountered {e}")
-        return func.HttpResponse(
-            f"Error has been encountered {e}",
-            status_code=400
-        )
+
+
+def main(req: HttpRequest):
+    subscription_id = req.params.get("subscription_id")
+    resource_group_name = req.params.get("resource_group_name")
+    virtual_network_name = req.params.get("virtual_network_name")
+    new_subnet_size = int(req.params.get("new_subnet_size"))
+
+    result = find_available_subnet(
+        subscription_id=subscription_id,
+        resource_group_name=resource_group_name,
+        virtual_network_name=virtual_network_name,
+        new_subnet_size=new_subnet_size,
+    )
+
+    return result

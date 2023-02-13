@@ -4,4 +4,3 @@ azure-identity
 azure-mgmt-resource
 azure-mgmt-network
 ipaddress
-logging

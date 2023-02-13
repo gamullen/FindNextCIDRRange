@@ -8,7 +8,6 @@
       "name": "findnextcidr",
       "methods": [
         "get",
-        "post"
       ]
     },
     {
