@@ -2,7 +2,7 @@ import logging
 from ipaddress import IPv4Network
 from azure.mgmt.network import NetworkManagementClient
 from azure.identity import DefaultAzureCredential
-from azure.functions import HttpRequest
+import azure.functions as func
 
 
 def find_available_subnet(
@@ -72,7 +72,7 @@ def find_available_subnet(
         logging.error(f"Error has been encountered {e}")
 
 
-def main(req: HttpRequest):
+def main(req: func.HttpRequest) -> func.HttpResponse:
     subscription_id = req.params.get("subscription_id")
     resource_group_name = req.params.get("resource_group_name")
     virtual_network_name = req.params.get("virtual_network_name")
@@ -85,4 +85,4 @@ def main(req: HttpRequest):
         new_subnet_size=new_subnet_size,
     )
 
-    return result
+    return func.HttpResponse(result)

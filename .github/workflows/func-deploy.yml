@@ -22,7 +22,7 @@ jobs:
         id: func-deploy
         uses: libre-devops/azure-function-app-deployment-gh-action@v1
         with:
-          code-path: "src"
+          code-path: "src/Python"
           code-client-id: ${{ secrets.SpokeSvpClientId }}
           code-client-secret: ${{ secrets.SpokeSvpClientSecret }}
           code-tenant-id: ${{ secrets.SpokeTenantId }}

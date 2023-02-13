@@ -527,3 +527,4 @@ override.tf.json
 .terraformrc
 terraform.rc
 !/debug/
+/terraform/function.zip
