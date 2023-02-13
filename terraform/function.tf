@@ -34,8 +34,7 @@ module "fnc_app" {
     ARM_TENANT_ID              = data.azurerm_client_config.current_creds.tenant_id
     FUNCTION_APP_NAME          = "fnc-${var.short}-${var.loc}-${terraform.workspace}-01"
     RESOURCE_GROUP_NAME        = module.rg.rg_name
-    "WEBSITE_RUN_FROM_PACKAGE" = azurerm_storage_blob.storage_blob_function.url
-
+#    "WEBSITE_RUN_FROM_PACKAGE" = azurerm_storage_blob.storage_blob_function.url
   }
 
   storage_account_name          = module.sa.sa_name

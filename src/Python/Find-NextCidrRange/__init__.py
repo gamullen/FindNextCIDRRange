@@ -3,6 +3,8 @@ from ipaddress import IPv4Network
 from azure.mgmt.network import NetworkManagementClient
 from azure.identity import DefaultAzureCredential
 import azure.functions as func
+import sys
+import traceback
 
 
 def find_available_subnet(
@@ -72,17 +74,21 @@ def find_available_subnet(
         logging.error(f"Error has been encountered {e}")
 
 
-def main(req: func.HttpRequest) -> func.HttpResponse:
-    subscription_id = req.params.get("subscription_id")
-    resource_group_name = req.params.get("resource_group_name")
-    virtual_network_name = req.params.get("virtual_network_name")
-    new_subnet_size = int(req.params.get("new_subnet_size"))
+def main(findnextcidr: func.HttpRequest) -> func.HttpResponse:
+    try:
+        subscription_id = findnextcidr.params.get("subscription_id")
+        resource_group_name = findnextcidr.params.get("resource_group_name")
+        virtual_network_name = findnextcidr.params.get("virtual_network_name")
+        new_subnet_size = int(findnextcidr.params.get("new_subnet_size"))
 
-    result = find_available_subnet(
-        subscription_id=subscription_id,
-        resource_group_name=resource_group_name,
-        virtual_network_name=virtual_network_name,
-        new_subnet_size=new_subnet_size,
-    )
+        result = find_available_subnet(
+            subscription_id=subscription_id,
+            resource_group_name=resource_group_name,
+            virtual_network_name=virtual_network_name,
+            new_subnet_size=new_subnet_size,
+        )
 
-    return func.HttpResponse(result)
+        return func.HttpResponse(result)
+    except Exception as e:
+        error = str(e) + "\n" + traceback.format_exc()
+        return func.HttpResponse(error, status_code=500)

@@ -1,4 +1,4 @@
-from azure.identity import ClientSecretCredential
+from azure.identity import ClientSecretCredential, DefaultAzureCredential
 from azure.mgmt.network import NetworkManagementClient
 from ipaddress import IPv4Network
 import os
@@ -34,16 +34,15 @@ def azure_authenticate():
 
 
 def find_available_subnet(
-    subscription_id, resource_group_name, virtual_network_name, new_subnet_size
+    subscription_id: str,
+    resource_group_name: str,
+    virtual_network_name: str,
+    new_subnet_size: int,
 ):
-
     try:
-        # Checks that new subnet size is integer, and it is compliant with RFC standard
-        new_subnet_size = int(new_subnet_size)
         if 0 <= new_subnet_size <= 32:
-            # Create a Network Management Client
             network_client = NetworkManagementClient(
-                azure_authenticate(), subscription_id=subscription_id
+                DefaultAzureCredential(), subscription_id=subscription_id
             )
 
             list_virtual_networks = network_client.virtual_networks.list(
@@ -62,7 +61,6 @@ def find_available_subnet(
                     "{resource_group_name}"
                 )
             else:
-                # Check if the specified CIDR is within the range of the address prefixes of the virtual network
                 address_prefixes = virtual_network.address_space.address_prefixes
                 cidr_within_range = False
                 for prefix in address_prefixes:
@@ -81,9 +79,7 @@ def find_available_subnet(
                         f"VNet {resource_group_name}/{virtual_network_name} cannot accept a "
                         f"subnet of size {new_subnet_size}"
                     )
-                    exit(1)
                 else:
-                    # Get the subnets of the virtual network object return from Azure
                     used_subnets = [
                         IPv4Network(subnet.address_prefix)
                         for subnet in virtual_network.subnets
@@ -108,7 +104,7 @@ result = find_available_subnet(
     subscription_id=sub_id,
     resource_group_name=rg_name,
     virtual_network_name=vnet_name,
-    new_subnet_size="32",
+    new_subnet_size=24,
 )
 
 print(result)

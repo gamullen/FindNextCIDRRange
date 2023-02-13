@@ -10,6 +10,6 @@ module "law" {
   law_sku                    = "PerGB2018"
   retention_in_days          = "30"
   daily_quota_gb             = "0.5"
-  internet_ingestion_enabled = false
-  internet_query_enabled     = false
+  internet_ingestion_enabled = true
+  internet_query_enabled     = true
 }
