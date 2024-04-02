@@ -140,7 +140,7 @@ namespace FindNextCIDR
                                 log.LogInformation("Out: Candidate = " + candidateCIDR.ToString() + ", desired = " + desiredAddressSpace);
                                 if ((null == desiredAddressSpace) || (candidateCIDR.ToString().Equals(desiredAddressSpace))) { 
                                     log.LogInformation("In: Candidate = " + candidateCIDR.ToString() + ", desired = " + desiredAddressSpace);
-                                    if (null != desiredAddressSpace)
+                                    if (!foundDesiredAddressSpace && null != desiredAddressSpace)
                                     {
                                         foundDesiredAddressSpace = true;
                                     }
