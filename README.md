@@ -14,16 +14,18 @@ The function itself is an HTTP function, which, will only run on request. Please
 
 **Worth a note, that this won't work out the box for you, you are expected to use your own intuition or reach out for help, we will keep mentioning this as the documentation goes on :smile:**
 
-There are 1 functions:
-- `Get-Cidir` 
+There is just one function:
+- `GetCidr` 
 
 You can query the API by feeding it the parameters in the following format via an HTTP GET request:
 
-`https://{{pathToFunctionApp}}?subscriptionId={{subscriptionId}}&resourceGroupName={{resourceGroupName}}&virtualNetworkName={{virtualNetworkName}}&cidr={{cidr}}`
+`https://{{pathToFunctionApp}}?subscriptionId={{subscriptionId}}&resourceGroupName={{resourceGroupName}}&virtualNetworkName={{virtualNetworkName}}&cidr={{cidr}}&addressSpace={{addressSpace}}`
+
+The 'addressSpace' parameter is optional. If not specified, the code will return the first valid subnet it finds. All other parameters are mandatory.
 
 So, for example:
 
-`https://fnc-ldo-euw-dev-01.azurewebsites.net/api/getcidr?subscriptionId=09d383ee-8ed0-4374-ad9f-3344cabc323b&resourceGroupName=rg-ldo-euw-dev-build&virtualNetworkName=vnet-ldo-euw-dev-01&cidr=26`
+`https://fnc-ldo-euw-dev-01.azurewebsites.net/api/getcidr?subscriptionId=09d383ee-8ed0-4374-ad9f-3344cabc323b&resourceGroupName=rg-ldo-euw-dev-build&virtualNetworkName=vnet-ldo-euw-dev-01&cidr=26&addressSpace=10.30.0.0/16`
 
 With example output:
 
@@ -33,6 +35,7 @@ With example output:
   "id": "/subscriptions/09d383ee-8ed0-4374-ad9f-3344cabc323b/resourceGroups/rg-ldo-euw-dev-build/providers/Microsoft.Network/virtualNetworks/vnet-ldo-euw-dev-01",
   "type": "Microsoft.Network/virtualNetworks",
   "location": "westeurope",
+  "addressSpace": "10.0.0.0/16",
   "proposedCIDR": "10.0.0.0/26"
 }
 ```
