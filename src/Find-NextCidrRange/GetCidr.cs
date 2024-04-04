@@ -21,11 +21,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+using Azure;
 using Azure.Identity;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Network;
-using Microsoft.Azure.Management.Network; 
-
+using Azure.ResourceManager.Resources;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
@@ -37,6 +37,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
+
 
 namespace FindNextCIDR
 {
@@ -80,6 +81,7 @@ namespace FindNextCIDR
             bool success = false;
             string foundSubnet = null;
             string foundAddressSpace = null;
+            byte cidr = 0;
 
             try
             {
@@ -90,25 +92,15 @@ namespace FindNextCIDR
                     // Make sure the CIDR is valid
                     if (validateCIDR(cidrString))
                     {
-                        byte cidr = Byte.Parse(cidrString);
+                        cidr = Byte.Parse(cidrString);
 
                         // Get a client for the SDK calls
                         var armClient = new ArmClient(new DefaultAzureCredential(), subscriptionId);
-                        var rg = armClient.GetDefaultSubscription().GetResourceGroup(resourceGroupName);
-                        VirtualNetworkResource vNet = null;
-                        if (rg.HasValue) 
-                        {
-                            var vNetResponse = rg.Value.GetVirtualNetwork(virtualNetworkName);
-                            if (vNetResponse.HasValue) 
-                            {
-                                vNet = vNetResponse.Value;
-                            }
-                        }
-                        else 
-                        {
-                            errorMessage = "Resource group " + resourceGroupName + " not found";
-                        }
-                     
+
+                        ResourceGroupResource rg = await armClient.GetDefaultSubscription().GetResourceGroupAsync(resourceGroupName);
+
+                        VirtualNetworkResource vNet = await rg.GetVirtualNetworkAsync(virtualNetworkName); 
+                        
                         if (vNet == null)
                         {
                             errorMessage = "Virtual network " + virtualNetworkName + " not found in resource group " + resourceGroupName;
@@ -125,7 +117,7 @@ namespace FindNextCIDR
                             foreach (string ip in vNet.Data.AddressPrefixes)
                             {
                                 IPNetwork2 vNetCIDR = IPNetwork2.Parse(ip);
-                                if (cidr <= vNetCIDR.Cidr)
+                                if (cidr >= vNetCIDR.Cidr)
                                 {
                                     vNetCIDRs.Add(vNetCIDR);
                                 }
@@ -135,7 +127,7 @@ namespace FindNextCIDR
                             foreach (IPNetwork2 candidateCIDR in vNetCIDRs)
                             {
                                 log.LogInformation("Out: Candidate = " + candidateCIDR.ToString() + ", desired = " + desiredAddressSpace);
-                                if ((null == desiredAddressSpace) || (candidateCIDR.ToString().Equals(desiredAddressSpace))) { 
+                                if ((null == desiredAddressSpace) || candidateCIDR.ToString().Equals(desiredAddressSpace)) { 
                                     log.LogInformation("In: Candidate = " + candidateCIDR.ToString() + ", desired = " + desiredAddressSpace);
                                     if (!foundDesiredAddressSpace && desiredAddressSpace != null)
                                     {
@@ -214,8 +206,14 @@ namespace FindNextCIDR
                     errorMessage = "Invalid input: " + errorMessage;
                 }
             }
+            catch (RequestFailedException ex) when (ex.Status == 404) // case the resource group or vnet doesn't exist
+            {
+                httpStatusCode = HttpStatusCode.NotFound;
+                error = ex;
+            }
             catch (Exception e)
             {
+               
                 httpStatusCode = HttpStatusCode.InternalServerError;
                 error = e;
                 // empty code var will signal error
@@ -297,7 +295,7 @@ namespace FindNextCIDR
                    // IPAddress.Parse(inCIDRBlock);
                     IPNetwork2.Parse(inCIDRBlock);
                     isGood = true;
-                } catch (Exception ex)
+                } catch 
                 {
                     isGood = false;
                 }
