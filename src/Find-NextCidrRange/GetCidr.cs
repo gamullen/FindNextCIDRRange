@@ -99,44 +99,37 @@ namespace FindNextCIDR
 
                         vNet = await rg.GetVirtualNetworkAsync(virtualNetworkName);
 
-                        if (vNet == null)
-                        {
-                            errorMessage = "Virtual network " + virtualNetworkName + " not found in resource group " + resourceGroupName;
-                        }
-                        else
-                        {
+                        var vNetCIDRs = new HashSet<IPNetwork2>();
 
-                            var vNetCIDRs = new HashSet<IPNetwork2>();
-
-                            foreach (string ip in vNet.Data.AddressPrefixes)
+                        foreach (string ip in vNet.Data.AddressPrefixes)
+                        {
+                            IPNetwork2 vNetCIDR = IPNetwork2.Parse(ip);
+                            if (cidr >= vNetCIDR.Cidr && (string.IsNullOrEmpty(desiredAddressSpace) || vNetCIDR.ToString().Equals(desiredAddressSpace)))
                             {
-                                IPNetwork2 vNetCIDR = IPNetwork2.Parse(ip);
-                                if (cidr >= vNetCIDR.Cidr && (string.IsNullOrEmpty(desiredAddressSpace) || vNetCIDR.ToString().Equals(desiredAddressSpace)))
-                                {
-                                    log.LogInformation("In: Candidate = " + vNetCIDR.ToString() + ", desired = " + desiredAddressSpace);
-                                    foundSubnet = GetValidSubnetIfExists(vNet, vNetCIDR, cidr);
-                                    foundAddressSpace = vNetCIDR.ToString();
+                                log.LogInformation("In: Candidate = " + vNetCIDR.ToString() + ", desired = " + desiredAddressSpace);
+                                foundSubnet = GetValidSubnetIfExists(vNet, vNetCIDR, cidr);
+                                foundAddressSpace = vNetCIDR.ToString();
 
-                                    if (!string.IsNullOrEmpty(foundSubnet))
-                                    {
-                                        log.LogInformation("Valid subnet is found: " + foundSubnet);
-                                        success = true;
-                                        break;
-                                    }
+                                if (!string.IsNullOrEmpty(foundSubnet))
+                                {
+                                    log.LogInformation("Valid subnet is found: " + foundSubnet);
+                                    success = true;
+                                    break;
                                 }
                             }
+                        }
 
-                            if (!success)
-                            {
-                                httpStatusCode = HttpStatusCode.NotFound;
-                                if (desiredAddressSpace == null)
-                                    errorMessage = "VNet " + resourceGroupName + "/" + virtualNetworkName + " cannot accept a subnet of size " + cidr;
-                                else
-                                    errorMessage = "Requested address space (" + desiredAddressSpace + ") not found in VNet " + resourceGroupName + "/" + virtualNetworkName;
-
-                            }
+                        if (!success)
+                        {
+                            httpStatusCode = HttpStatusCode.NotFound;
+                            if (desiredAddressSpace == null)
+                                errorMessage = "VNet " + resourceGroupName + "/" + virtualNetworkName + " cannot accept a subnet of size " + cidr;
+                            else
+                                errorMessage = "Requested address space (" + desiredAddressSpace + ") not found in VNet " + resourceGroupName + "/" + virtualNetworkName;
 
                         }
+
+
                     }
                     else
                     {
@@ -269,7 +262,7 @@ namespace FindNextCIDR
             return isGood;
         }
 
-        public static string GetValidSubnetIfExists(VirtualNetworkResource vNet, IPNetwork2 vNetCIDR, Byte cidr)
+        private static string GetValidSubnetIfExists(VirtualNetworkResource vNet, IPNetwork2 vNetCIDR, Byte cidr)
         {
             var usedSubnets = new List<IPNetwork2>();
 
