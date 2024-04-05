@@ -84,7 +84,7 @@ namespace FindNextCIDR
             {
                 // Validate the input params
                 errorMessage = ValidateInput(subscriptionId, virtualNetworkName, resourceGroupName, cidrString, desiredAddressSpace);
-                if (string.IsNullOrEmpty(errorMessage))
+                if (null == errorMessage)
                 {
                     // Make sure the CIDR is valid
                     if (ValidateCIDR(cidrString))
@@ -104,13 +104,13 @@ namespace FindNextCIDR
                         foreach (string ip in vNet.Data.AddressPrefixes)
                         {
                             IPNetwork2 vNetCIDR = IPNetwork2.Parse(ip);
-                            if (cidr >= vNetCIDR.Cidr && (string.IsNullOrEmpty(desiredAddressSpace) || vNetCIDR.ToString().Equals(desiredAddressSpace)))
+                            if (cidr >= vNetCIDR.Cidr && (null == desiredAddressSpace || vNetCIDR.ToString().Equals(desiredAddressSpace)))
                             {
                                 log.LogInformation("In: Candidate = " + vNetCIDR.ToString() + ", desired = " + desiredAddressSpace);
                                 foundSubnet = GetValidSubnetIfExists(vNet, vNetCIDR, cidr);
                                 foundAddressSpace = vNetCIDR.ToString();
 
-                                if (!string.IsNullOrEmpty(foundSubnet))
+                                if (null != foundSubnet)
                                 {
                                     log.LogInformation("Valid subnet is found: " + foundSubnet);
                                     success = true;
@@ -122,11 +122,10 @@ namespace FindNextCIDR
                         if (!success)
                         {
                             httpStatusCode = HttpStatusCode.NotFound;
-                            if (desiredAddressSpace == null)
+                            if (null == desiredAddressSpace)
                                 errorMessage = "VNet " + resourceGroupName + "/" + virtualNetworkName + " cannot accept a subnet of size " + cidr;
                             else
                                 errorMessage = "Requested address space (" + desiredAddressSpace + ") not found in VNet " + resourceGroupName + "/" + virtualNetworkName;
-
                         }
 
 
@@ -159,7 +158,7 @@ namespace FindNextCIDR
             }
 
             ObjectResult result;
-            if (string.IsNullOrEmpty(errorMessage) && success)
+            if (null == errorMessage && success)
             {
                 ProposedSubnetResponse proposedSubnetResponse = new ProposedSubnetResponse()
                 {
@@ -178,7 +177,7 @@ namespace FindNextCIDR
                 result = new OkObjectResult(jsonString);
             }
             else
-            {   if(error != null) 
+            {   if(null != error) 
                 { 
                     errorMessage = error.Message;
                 }
@@ -296,7 +295,7 @@ namespace FindNextCIDR
                 }
             }
             // no valid subnet found
-            return string.Empty;
+            return null;
         }
 
     }
