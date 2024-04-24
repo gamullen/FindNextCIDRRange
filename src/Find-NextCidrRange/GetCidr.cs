@@ -38,13 +38,9 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-
-namespace FindNextCIDR
-{
-    public static class GetCidr
-    {
-        public class ProposedSubnetResponse
-        {
+namespace FindNextCIDR {
+    public static class GetCidr {
+        public class ProposedSubnetResponse {
             public string name { get; set; }
             public string id { get; set; }
             public string type { get; set; }
@@ -52,251 +48,137 @@ namespace FindNextCIDR
             public string addressSpace { get; set; }
             public string proposedCIDR { get; set; }
         }
-        public class CustomError
-        {
+        public class CustomError {
             public string code { get; set; }
             public string message { get; set; }
         }
 
-        static HttpStatusCode httpStatusCode = HttpStatusCode.OK;
-
         [FunctionName("GetCidr")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
-            ILogger log)
-        {
+            ILogger log) {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
+            // Check for valid input
+            string[] requiredParameters = { "subscriptionId", "virtualNetworkName", "resourceGroupName", "cidr" };
+            string missingParameter = requiredParameters.FirstOrDefault(parameter => string.IsNullOrWhiteSpace(req.Query[parameter]));
+            if(missingParameter != null) return ResultError($"{missingParameter} is null or empty", HttpStatusCode.BadRequest);
+
+            // Get the query parameters
             string subscriptionId = req.Query["subscriptionId"];
-            string virtualNetworkName = req.Query["virtualNetworkName"];
-            string resourceGroupName = req.Query["resourceGroupName"];
+            string vnetName = req.Query["virtualNetworkName"];
+            string rgName = req.Query["resourceGroupName"];
             string cidrString = req.Query["cidr"];
             string desiredAddressSpace = req.Query["addressSpace"];
-            Exception error = null;
-            string errorMessage = null;
-            bool success = false;
-            string foundSubnet = null;
-            string foundAddressSpace = null;
-            byte cidr;
-            VirtualNetworkResource vNet = null;
 
-            try
-            {
-                // Validate the input params
-                errorMessage = ValidateInput(subscriptionId, virtualNetworkName, resourceGroupName, cidrString, desiredAddressSpace);
-                if (null == errorMessage)
-                {
-                    // Make sure the CIDR is valid
-                    if (ValidateCIDR(cidrString))
-                    {
-                        cidr = Byte.Parse(cidrString);
+            // Validate the CIDR block and CIDR size
+            if (!ValidateCIDR(cidrString)) return ResultError("Invalid CIDR size requested: " + cidrString);
+            if (!ValidateCIDRBlock(desiredAddressSpace)) return ResultError("desiredAddressSpace is invalid");
 
-                        // Get a client for the SDK calls
-                        var armClient = new ArmClient(new DefaultAzureCredential(), subscriptionId);
+            try {
+                // Get a client for the SDK calls
+                var armClient = new ArmClient(new DefaultAzureCredential(), subscriptionId);
+                var subscription = await armClient.GetDefaultSubscriptionAsync();
+                ResourceGroupResource rg = await subscription.GetResourceGroupAsync(rgName);
+                VirtualNetworkResource vNet = await rg.GetVirtualNetworkAsync(vnetName);
+                byte cidr = Byte.Parse(cidrString);
 
-                        var subscription = await armClient.GetDefaultSubscriptionAsync();
-                        ResourceGroupResource rg = await subscription.GetResourceGroupAsync(resourceGroupName);
+                foreach (string ip in vNet.Data.AddressPrefixes) {
+                    IPNetwork2 vNetCIDR = IPNetwork2.Parse(ip);
+                    if (cidr >= vNetCIDR.Cidr && (null == desiredAddressSpace || vNetCIDR.ToString().Equals(desiredAddressSpace))) {
+                        log.LogInformation("In: Candidate = " + vNetCIDR.ToString() + ", desired = " + desiredAddressSpace);
+                        string foundSubnet = GetValidSubnetIfExists(vNet, vNetCIDR, cidr);
+                        string foundAddressSpace = vNetCIDR.ToString();
 
-                        vNet = await rg.GetVirtualNetworkAsync(virtualNetworkName);
-
-                        var vNetCIDRs = new HashSet<IPNetwork2>();
-
-                        foreach (string ip in vNet.Data.AddressPrefixes)
-                        {
-                            IPNetwork2 vNetCIDR = IPNetwork2.Parse(ip);
-                            if (cidr >= vNetCIDR.Cidr && (null == desiredAddressSpace || vNetCIDR.ToString().Equals(desiredAddressSpace)))
-                            {
-                                log.LogInformation("In: Candidate = " + vNetCIDR.ToString() + ", desired = " + desiredAddressSpace);
-                                foundSubnet = GetValidSubnetIfExists(vNet, vNetCIDR, cidr);
-                                foundAddressSpace = vNetCIDR.ToString();
-
-                                if (null != foundSubnet)
-                                {
-                                    log.LogInformation("Valid subnet is found: " + foundSubnet);
-                                    success = true;
-                                    break;
-                                }
-                            }
+                        if (foundSubnet != null) {
+                            log.LogInformation("Valid subnet is found: " + foundSubnet);
+                            return ResultSuccess(vNet, vnetName, foundSubnet, foundAddressSpace);
                         }
-
-                        if (!success)
-                        {
-                            httpStatusCode = HttpStatusCode.NotFound;
-                            if (null == desiredAddressSpace)
-                                errorMessage = "VNet " + resourceGroupName + "/" + virtualNetworkName + " cannot accept a subnet of size " + cidr;
-                            else
-                                errorMessage = "Requested address space (" + desiredAddressSpace + ") not found in VNet " + resourceGroupName + "/" + virtualNetworkName;
-                        }
-
-
-                    }
-                    else
-                    {
-                        httpStatusCode = HttpStatusCode.BadRequest;
-                        errorMessage = "Invalid CIDR size requested: " + cidrString;
                     }
                 }
 
-                else
-                {
-                    httpStatusCode = HttpStatusCode.BadRequest;
-                    errorMessage = "Invalid input: " + errorMessage;
-                }
-            }
+                var matchingPrefixes = vNet.Data.AddressPrefixes
+                    .Select(prefix => IPNetwork2.Parse(prefix))
+                    .Where(vNetCIDR => cidr >= vNetCIDR.Cidr && (desiredAddressSpace == null || vNetCIDR.ToString().Equals(desiredAddressSpace)));
 
-            catch (RequestFailedException ex) when (ex.Status == 404) // case the resource group or vnet doesn't exist
-            {
-                httpStatusCode = HttpStatusCode.NotFound;
-                error = ex;
-            }
-            catch (Exception e)
-            {
+                foreach (var vNetCIDR in matchingPrefixes) {
+                    log.LogInformation("In: Candidate = " + vNetCIDR.ToString() + ", desired = " + desiredAddressSpace);
+                    string foundSubnet = GetValidSubnetIfExists(vNet, vNetCIDR, cidr);
+                    string foundAddressSpace = vNetCIDR.ToString();
 
-                httpStatusCode = HttpStatusCode.InternalServerError;
-                error = e;
-                // empty code var will signal error
-            }
-
-            ObjectResult result;
-            if (null == errorMessage && success)
-            {
-                ProposedSubnetResponse proposedSubnetResponse = new ProposedSubnetResponse()
-                {
-                    name = virtualNetworkName,
-                    id = vNet.Id,
-                    type = vNet.Id.ResourceType,
-                    location = vNet.Data.Location,
-                    proposedCIDR = foundSubnet,
-                    addressSpace = foundAddressSpace
-
-                };
-
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                string jsonString = JsonSerializer.Serialize(proposedSubnetResponse, options);
-
-                result = new OkObjectResult(jsonString);
-            }
-            else
-            {   if(null != error) 
-                { 
-                    errorMessage = error.Message;
-                }
-                var customError = new CustomError {
-                    code = "" + ((int)httpStatusCode),
-                    message = httpStatusCode.ToString() + ", " +  errorMessage
-                };
-
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                string jsonString = JsonSerializer.Serialize(customError, options);
-
-                result = new BadRequestObjectResult(jsonString);
-            }
-
-            return result;
-        }
-
-        private static string ValidateInput(string subscriptionId, string virtualNetworkName, string resourceGroupName, string cidrString, string desiredAddressSpace)
-        {
-            string errorMessage = null;
-
-            if (null == subscriptionId)
-            {
-                errorMessage = "subscriptionId is null";
-            }
-            else if (null == virtualNetworkName)
-            {
-                errorMessage = "virtualNetworkName is null";
-            }
-            else if (null == resourceGroupName)
-            {
-                errorMessage = "resourceGroupName is null";
-            }
-            else if (null == cidrString)
-            {
-                errorMessage = "cidr is null";
-            }
-            else if (!ValidateCIDRBlock(desiredAddressSpace))
-            {
-                errorMessage = "desiredAddressSpace is invalid";
-            }
-
-            return errorMessage;
-        }
-
-        private static bool ValidateCIDRBlock(string inCIDRBlock)
-        {
-            bool isGood = false;
-
-            if (null == inCIDRBlock)
-            {
-                isGood = true;
-            }
-            else
-            {
-                try
-                {
-                   // IPAddress.Parse(inCIDRBlock);
-                    IPNetwork2.Parse(inCIDRBlock);
-                    isGood = true;
-                } catch 
-                {
-                    isGood = false;
-                }
-            }
-
-            return isGood;
-        }
-
-        private static bool ValidateCIDR(string inCIDR)
-        {
-            bool isGood = false;
-
-            byte cidr;
-
-            if(Byte.TryParse(inCIDR, out cidr))
-            { 
-                isGood = (2 <= cidr && 29 >= cidr);
-            }
-
-            return isGood;
-        }
-
-        private static string GetValidSubnetIfExists(VirtualNetworkResource vNet, IPNetwork2 vNetCIDR, Byte cidr)
-        {
-            var usedSubnets = new List<IPNetwork2>();
-
-            // Get every Azure subnet in the VNet
-            SubnetCollection usedSubnetsAzure = vNet.GetSubnets();
-
-            // Get a list of all CIDRs that could possibly fit into the given address space with the CIDR range requested
-            IPNetworkCollection candidateSubnets = vNetCIDR.Subnet(cidr);
-
-            // Convert into IPNetwork object list
-            foreach (SubnetResource usedSubnet in usedSubnetsAzure)
-            {
-                usedSubnets.Add(IPNetwork2.Parse(usedSubnet.Data.AddressPrefix));
-            }
-
-            foreach (IPNetwork2 candidateSubnet in candidateSubnets)
-            {
-                bool subnetIsValid = true;
-                // Go through each Azure subnet in VNet, check against candidate
-                foreach (IPNetwork2 usedSubnet in usedSubnets)
-                {
-                    if (usedSubnet.Overlap(candidateSubnet))
-                    {
-                        subnetIsValid = false;
-                        break; // stop the loop as the candidate is not valid (overlapping with existing subnets)
+                    if (foundSubnet != null) {
+                        log.LogInformation("Valid subnet is found: " + foundSubnet);
+                        return ResultSuccess(vNet, vnetName, foundSubnet, foundAddressSpace);
                     }
                 }
-                if (subnetIsValid)
-                {
-                    return candidateSubnet.ToString();
-                }
+
+
+                string errMsg = desiredAddressSpace == null 
+                    ? "VNet " + rgName + "/" + vnetName + " cannot accept a subnet of size " + cidr 
+                    : "Requested address space (" + desiredAddressSpace + ") not found in VNet " + rgName + "/" + vnetName;
+
+                return ResultError(errMsg, HttpStatusCode.NotFound);
+
             }
-            // no valid subnet found
-            return null;
+
+            // case the resource group or vnet doesn't exist
+            catch (RequestFailedException ex) when (ex.Status == 404) { return ResultError(ex, HttpStatusCode.NotFound); }
+
+            // empty code var will signal error
+            catch (Exception e) { return ResultError(e, HttpStatusCode.InternalServerError); }
+        }
+        private static BadRequestObjectResult ResultError(string errorMessage, HttpStatusCode httpStatusCode = HttpStatusCode.BadRequest) {
+            var customError = new CustomError {
+                code = "" + ((int)httpStatusCode),
+                message = httpStatusCode.ToString() + ", " +  errorMessage
+            };
+
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            string jsonString = JsonSerializer.Serialize(customError, options);
+
+            return new BadRequestObjectResult(jsonString);;
+        }
+        private static OkObjectResult ResultSuccess(VirtualNetworkResource vNet, string virtualNetworkName, string foundSubnet, string foundAddressSpace) {
+            ProposedSubnetResponse proposedSubnetResponse = new ProposedSubnetResponse() {
+                name = virtualNetworkName,
+                id = vNet.Id,
+                type = vNet.Id.ResourceType,
+                location = vNet.Data.Location,
+                proposedCIDR = foundSubnet,
+                addressSpace = foundAddressSpace
+            };
+
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            string jsonString = JsonSerializer.Serialize(proposedSubnetResponse, options);
+
+            return new OkObjectResult(jsonString);
         }
 
+        private static bool ValidateCIDRBlock(string inCIDRBlock) {
+            if (inCIDRBlock == null) return true; // no address space specified (ok as optional)
+
+            try { IPNetwork2.Parse(inCIDRBlock); }
+            catch { return false; }
+
+            return true;
+        }
+
+        private static bool ValidateCIDR(string inCIDR) {
+            if (Byte.TryParse(inCIDR, out global::System.Byte cidr)) return 2 <= cidr && 29 >= cidr;
+            else return false;
+        }
+
+        private static string GetValidSubnetIfExists(VirtualNetworkResource vNet, IPNetwork2 requestedCIDR, byte cidr) {
+            List<IPNetwork2> subnets = vNet.GetSubnets().Select(subnet => IPNetwork2.Parse(subnet.Data.AddressPrefix)).ToList();
+
+            // Iterate through each candidate subnet
+            foreach (IPNetwork2 candidateSubnet in requestedCIDR.Subnet(cidr)) {
+                // Check if the candidate subnet overlaps with any existing subnet
+                if (!subnets.Any(subnet => subnet.Overlap(candidateSubnet))) {
+                    return candidateSubnet.ToString(); // Found a valid subnet, return it
+                }
+            }
+            return null; // No valid subnet found
+        }
     }
 }
