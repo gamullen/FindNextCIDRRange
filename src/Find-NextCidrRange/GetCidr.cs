@@ -37,6 +37,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace FindNextCIDR {
     public static class GetCidr {
@@ -46,7 +47,7 @@ namespace FindNextCIDR {
             public required string Type { get; set; }
             public required string Location { get; set; }
             public required string AddressSpace { get; set; }
-            public required string {roposedCIDR { get; set; }
+            public required string ProposedCIDR { get; set; }
         }
         public class CustomError {
             public required string Code { get; set; }
@@ -93,17 +94,6 @@ namespace FindNextCIDR {
             }
 
             byte cidr = Byte.Parse(cidrString);
-            foreach (string ip in vNet.Data.AddressPrefixes) {
-                IPNetwork2 vNetCIDR = IPNetwork2.Parse(ip);
-                if (cidr >= vNetCIDR.Cidr && (null == desiredAddressSpace || vNetCIDR.ToString().Equals(desiredAddressSpace))) {
-                    string foundSubnet = GetValidSubnetIfExists(vNet, vNetCIDR, cidr);
-                    string foundAddressSpace = vNetCIDR.ToString();
-
-                    if (foundSubnet != null) {
-                        return ResultSuccess(vNet, vnetName, foundSubnet, foundAddressSpace);
-                    }
-                }
-            }
 
             var matchingPrefixes = vNet.Data.AddressPrefixes
                 .Select(prefix => IPNetwork2.Parse(prefix))
