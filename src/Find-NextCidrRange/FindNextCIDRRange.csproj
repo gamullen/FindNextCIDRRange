@@ -4,13 +4,13 @@
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.11.2" />
-    <PackageReference Include="Azure.ResourceManager.Network" Version="1.7.0" />
+    <PackageReference Include="Azure.Identity" Version="1.12.0" />
+    <PackageReference Include="Azure.ResourceManager.Network" Version="1.8.0" />
     <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.6.0" />
     <PackageReference Include="IPNetwork2" Version="3.0.667" />
     <PackageReference Include="Microsoft.ApplicationInsights" Version="2.22.0" />
-    <PackageReference Include="Microsoft.Identity.Client" Version="4.60.3" />
-    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.3.0" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.61.3" />
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.4.0" />
     <PackageReference Include="System.Net.Primitives" Version="4.3.1" />
   </ItemGroup>
   <ItemGroup>
