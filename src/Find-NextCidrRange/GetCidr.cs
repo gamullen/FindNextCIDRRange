@@ -274,6 +274,13 @@ namespace FindNextCIDR
             // Convert into IPNetwork object list
             foreach (SubnetResource usedSubnet in usedSubnetsAzure)
             {
+                var prefixes = new List<string>();
+                
+                prefixes.AddRange(usedSubnet.Data.AddressPrefixes);
+
+                if ( null != usedSubnet.Data.AddressPrefix && !prefixes.Contains(usedSubnet.Data.AddressPrefix))
+                    prefixes.Add(usedSubnet.Data.AddressPrefix);
+
                 foreach(var prefix in usedSubnet.Data.AddressPrefixes)
                     usedSubnets.Add(IPNetwork2.Parse(prefix));
             }
