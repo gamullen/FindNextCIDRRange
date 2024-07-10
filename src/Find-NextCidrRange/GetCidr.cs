@@ -281,7 +281,7 @@ namespace FindNextCIDR
                 if ( null != usedSubnet.Data.AddressPrefix && !prefixes.Contains(usedSubnet.Data.AddressPrefix))
                     prefixes.Add(usedSubnet.Data.AddressPrefix);
 
-                foreach(var prefix in usedSubnet.Data.AddressPrefixes)
+                foreach(var prefix in prefixes)
                     usedSubnets.Add(IPNetwork2.Parse(prefix));
             }
 
