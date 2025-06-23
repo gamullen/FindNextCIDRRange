@@ -1,5 +1,11 @@
 # Intro
 
+**ANNOUNCEMENT**
+This is Gary, the original author of this code. I am retiring from Microsoft in July of 2025, and will not longer 
+be doing much in the way of Azure.
+
+Craig Thacker, who added Terraform support a couple years ago, is taking over ownership. Thanks, Craig!
+
 Hello :wave:
 
 This repo hosts all the code and the mechanisms to deploy a Linux Azure Function App into to your tenant, with this function app acting as a method of getting the next CIDR range in a VNet.  Please check and the [original documentation and blog post](https://techcommunity.microsoft.com/t5/azure-networking-blog/programmatically-find-next-available-cidr-for-subnet/ba-p/3266016) for information on the original app. 
